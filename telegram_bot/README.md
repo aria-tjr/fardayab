@@ -42,6 +42,29 @@ docker build -t telegram-bot .
 docker run --env-file=config/.env --name tg-bot --restart=unless-stopped telegram-bot
 ```
 
+## استقرار روی سرور Contabo (Docker Compose)
+
+1. دسترسی SSH به سرور (مثال IP در فاکتور شما موجود است). ابتدا یک کاربر غیر `root` بسازید و SSH را ایمن کنید.
+2. فایل `config/.env` را با مقادیر واقعی پر کنید.
+3. از ریشه پروژه این دستورات را اجرا کنید:
+
+```
+chmod +x scripts/*.sh
+./scripts/deploy.sh user@SERVER_IP /opt/tg-bot
+```
+
+این اسکریپت:
+- Docker و Compose را نصب/بروزرسانی می‌کند.
+- پروژه را به مسیر `/opt/tg-bot` کپی می‌کند.
+- سرویس را با `docker compose up -d --build` اجرا می‌کند.
+
+برای مشاهده لاگ‌ها:
+```
+ssh user@SERVER_IP "cd /opt/tg-bot && docker compose logs -f | cat"
+```
+
+برای بروزرسانی بعدی فقط کافیست دوباره `deploy.sh` را اجرا کنید.
+
 ## فرمان‌های ادمین (PV)
 - `/start` معرفی ربات
 - `/run` اجرای فوری وظیفه روزانه
