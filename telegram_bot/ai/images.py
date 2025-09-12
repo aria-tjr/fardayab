@@ -18,8 +18,6 @@ def build_image_prompt(topic: str, data: dict[str, Any]) -> str:
         return base + " موضوع: نکته روز در مورد بازار؛ لامپ ایده، زمینه روشن."
     if topic == "sports":
         return base + " موضوع: مسابقات فوتبال امروز؛ دو تیم با پس‌زمینه استادیوم."
-    if topic == "weather":
-        return base + " موضوع: وضعیت آب‌وهوای شهرها؛ آیکون‌های آب‌وهوا و دما."
     return base
 
 
@@ -42,4 +40,3 @@ async def generate_image_url(settings: Settings, topic: str, data: dict[str, Any
             return None
 
     return await asyncio.to_thread(_run)
-

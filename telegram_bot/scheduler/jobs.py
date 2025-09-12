@@ -49,7 +49,7 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
         topic = (topic or (settings.POST_MODE == 'split' and 'economy') or 'combined').lower()
         # Generate variants according to mode (prefer structured → fallback to text)
         variants: dict[str, str]
-        if settings.POST_MODE == 'split' and topic in {"economy", "sports", "trends", "weather", "insight"}:
+        if settings.POST_MODE == 'split' and topic in {"economy", "sports", "trends", "insight"}:
             structured = await generate_topic_structured(settings, data, topic)
             if structured and isinstance(structured, dict) and structured.get("body"):
                 variants = {"A": render_topic(structured), "B": render_topic(structured)}
@@ -89,7 +89,7 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
             idx = today.toordinal() % len(insights)
             if settings.POST_MODE == 'split':
                 from telegram_bot.utils.formatting import (
-                    format_economy_post, format_sports_post, format_trends_post, format_weather_post, format_insight_post
+                    format_economy_post, format_sports_post, format_trends_post, format_insight_post
                 )
                 if topic == 'economy':
                     text = format_economy_post(data.get("crypto"), data.get("sentiment"))
@@ -97,8 +97,6 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
                     text = format_sports_post(data.get("sports"))
                 elif topic == 'trends':
                     text = format_trends_post(data.get("trends"), data.get("trends_compare"))
-                elif topic == 'weather':
-                    text = format_weather_post(data.get("weather"))
                 else:
                     text = format_insight_post(insights[idx])
             else:
@@ -106,7 +104,6 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
                     economic=data.get("crypto"),
                     sports=data.get("sports"),
                     trends=data.get("trends"),
-                    weather=data.get("weather"),
                     header_note="⚠️ تولید خودکار با فرمت رزرو (بدون OpenAI)",
                     sentiment=data.get("sentiment"),
                     insight=insights[idx],

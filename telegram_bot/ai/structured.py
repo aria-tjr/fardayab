@@ -33,7 +33,7 @@ async def generate_combined_structured(settings: Settings, data: dict[str, Any])
         return None
     client = OpenAI(api_key=settings.OPENAI_API_KEY)
     system = (
-        "Produce a Persian-only structured daily post covering economy, sports, trends, weather, and an insight. "
+        "Produce a Persian-only structured daily post covering economy, sports, trends, and an insight. "
         f"Style should be {settings.TONE}; persona: {settings.PERSONA}."
     )
     prompt = json.dumps({"data": data}, ensure_ascii=False)

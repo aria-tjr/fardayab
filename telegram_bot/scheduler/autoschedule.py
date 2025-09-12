@@ -63,10 +63,12 @@ async def apply_autoschedule(scheduler, bot: Bot, settings: Settings, db: Databa
         tmap = await db.get_topic_map()
     except Exception:
         tmap = {}
+    allowed = set(settings.topics())
     for idx, t in enumerate(times):
         hh, mm = [int(x) for x in t.split(":", 1)]
         job_id = f"daily_job_{hh:02d}{mm:02d}"
-        topic = (tmap.get(f"{hh:02d}:{mm:02d}") or (seq[idx % len(seq)] if seq else "economy"))
+        chosen = (tmap.get(f"{hh:02d}:{mm:02d}") or (seq[idx % len(seq)] if seq else "economy"))
+        topic = chosen if chosen in allowed else (seq[idx % len(seq)] if seq else "economy")
         scheduler.add_job(
             func=__import__("telegram_bot.scheduler.jobs", fromlist=["daily_job"]).daily_job,
             trigger=CronTrigger(hour=hh, minute=mm, timezone=ZoneInfo(tz)),

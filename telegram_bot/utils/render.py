@@ -45,16 +45,7 @@ def render_combined(d: dict[str, Any]) -> str:
             lines.append(f"🌍 مقایسه با {tr['compare_region']}:")
             lines.append(" ".join([t if t.startswith('#') else f"#{t.replace(' ','')}" for t in tr['compare_tags'][:5]]))
 
-    wt = d.get("weather") or []
-    if wt:
-        lines.append("")
-        lines.append("🌦️ آب‌وهوا:")
-        for w in wt:
-            city = w.get("city")
-            desc = w.get("desc")
-            temp = w.get("temp")
-            if city:
-                lines.append(f"{city} — {desc or '—'} — {temp if temp is not None else '—'}°C")
+    # Weather section removed per project requirements
 
     if d.get("insight"):
         lines.append("")
@@ -73,4 +64,3 @@ def render_topic(d: dict[str, Any]) -> str:
     tags = d.get("hashtags") or []
     tag_line = ("\n" + " ".join([h if h.startswith('#') else f"#{h}" for h in tags[:8]])) if tags else ""
     return body.strip() + tag_line
-

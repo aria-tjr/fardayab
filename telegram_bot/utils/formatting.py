@@ -20,7 +20,6 @@ def format_channel_post(
     economic: dict | None,
     sports: list[dict] | None,
     trends: list[str] | None,
-    weather: list[dict] | None,
     header_note: str | None = None,
     sentiment: dict | None = None,
     insight: str | None = None,
@@ -61,13 +60,7 @@ def format_channel_post(
     else:
         lines.append("ترندی در دسترس نیست.")
 
-    lines.append("")
-    lines.append("🌦️ وضعیت آب‌وهوا:")
-    if weather:
-        for w in weather:
-            lines.append(f"{safe(w.get('city'))} {safe(w.get('desc'))} {safe(w.get('temp'))}°C")
-    else:
-        lines.append("اطلاعات آب‌وهوا موجود نیست.")
+    # Weather section removed per project requirements
 
     # sentiment + insight
     if sentiment and (sentiment.get("summary") or sentiment.get("score") is not None):
@@ -136,15 +129,7 @@ def format_trends_post(trends: list[str] | None, compare: dict | None) -> str:
     return "\n".join(lines)
 
 
-def format_weather_post(weather: list[dict] | None) -> str:
-    lines = ["🌦️ وضعیت آب‌وهوا:"]
-    if weather:
-        for w in weather:
-            lines.append(f"{safe(w.get('city'))} — {safe(w.get('desc'))} — {safe(w.get('temp'))}°C")
-    else:
-        lines.append("اطلاعات آب‌وهوا موجود نیست.")
-    lines.append("\n#آبوهوا #هواشناسی")
-    return "\n".join(lines)
+# Weather-specific formatter removed
 
 
 def format_insight_post(insight: str | None) -> str:

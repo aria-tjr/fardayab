@@ -16,8 +16,7 @@ SYSTEM_PROMPT_BASE = (
     "1) ECONOMY (📊): Include predictions (with short, clear reasons), plus two scenarios (optimistic, pessimistic). Compare with yesterday when available.\n"
     "2) SPORTS (⚽): List hot matches and add a one-line prediction per match.\n"
     "3) INTERNET TRENDS (📱): Show likely trending tags. Optionally compare with another region.\n"
-    "4) WEATHER (🌦️): City - brief description - temperature.\n"
-    "5) INSIGHT OF THE DAY (💡): One short, surprising or useful fact.\n"
+    "4) INSIGHT OF THE DAY (💡): One short, surprising or useful fact.\n"
     "Style: engaging, storytelling (not dry), emoji-rich, 3–6 smart hashtags. Keep under ~250 words total."
 )
 
@@ -33,8 +32,6 @@ def _build_user_prompt(data: dict[str, Any], variant: str, tone: str, persona: s
         "- چند بازی داغ + پیش‌بینی یک‌خطی\n\n"
         "📱 ترند اینترنت:\n"
         "- چند هشتگ احتمالی + قیاس کوتاه با منطقه دیگر (اگر موجود)\n\n"
-        "🌦️ آب‌وهوا:\n"
-        "- شهر — توصیف — دما\n\n"
         "💡 Insight روز:\n"
         "- یک نکته کوتاه و جالب\n\n"
     )
@@ -115,10 +112,6 @@ TOPIC_SYSTEMS = {
         "You are a Persian trends analyst and copywriter. Focus ONLY on internet/search trends. "
         "Highlight top Iranian trends, optionally contrast with compare-region trends, explain why they matter, "
         "add 5-8 smart hashtags and a question to spark discussion."
-    ),
-    "weather": (
-        "You are a Persian weather explainer. Focus ONLY on weather for the selected cities. "
-        "Provide brief forecasts, temperature ranges, alerts if any (based on data), and a friendly tip."
     ),
     "insight": (
         "You are a Persian educator/copywriter. Deliver ONE insightful, timely tip related to markets, sports culture, or digital life, "

@@ -40,18 +40,6 @@ def combined_schema() -> dict:
                         "compare_tags": {"type": "array", "items": {"type": "string"}},
                     },
                 },
-                "weather": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "city": {"type": "string"},
-                            "desc": {"type": "string"},
-                            "temp": {"type": "number"},
-                        },
-                        "required": ["city"],
-                    },
-                },
                 "insight": {"type": "string"},
                 "hashtags": {"type": "array", "items": {"type": "string"}},
             },
@@ -77,4 +65,3 @@ def topic_schema(topic: str) -> dict:
         "strict": False,
     }
     return base
-

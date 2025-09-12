@@ -31,7 +31,6 @@ from telegram_bot.utils.formatting import (
     format_economy_post,
     format_sports_post,
     format_trends_post,
-    format_weather_post,
     format_insight_post,
 )
 from telegram_bot.utils.abtest import pick_variant
@@ -109,14 +108,13 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
             jobs = scheduler.get_jobs()
             keys = {
                 "OPENAI": bool(settings.OPENAI_API_KEY),
-                "WEATHER": bool(settings.OPENWEATHER_KEY),
                 "NEWS": bool(settings.NEWSAPI_KEY or settings.NEWSDATA_KEY or settings.MEDIASTACK_KEY),
             }
             await msg.answer(
                 "سلامت سیستم:\n"
                 f"- Jobs: {len(jobs)}\n"
                 f"- آخرین اجرا: {('ok' if lr else '—')}\n"
-                f"- کلیدها: OpenAI={keys['OPENAI']} Weather={keys['WEATHER']} News={keys['NEWS']}\n"
+                f"- کلیدها: OpenAI={keys['OPENAI']} News={keys['NEWS']}\n"
             )
         except Exception as e:
             await msg.answer(f"Health error: {e}")
@@ -227,10 +225,10 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
             return
         parts = msg.text.split()
         if len(parts) != 3:
-            await msg.answer("فرمت: /map HH:MM topic | موضوعات مجاز: economy,sports,trends,weather,insight")
+            await msg.answer("فرمت: /map HH:MM topic | موضوعات مجاز: economy,sports,trends,insight")
             return
         tm, topic = parts[1], parts[2].lower()
-        if topic not in {"economy","sports","trends","weather","insight"}:
+        if topic not in {"economy","sports","trends","insight"}:
             await msg.answer("موضوع نامعتبر.")
             return
         try:
@@ -267,13 +265,13 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
             return
         parts = msg.text.split(maxsplit=1)
         if len(parts) != 2:
-            await msg.answer("فرمت: /settopics economy,sports,trends,weather,insight")
+            await msg.answer("فرمت: /settopics economy,sports,trends,insight")
             return
         raw = [t.strip().lower() for t in parts[1].split(',') if t.strip()]
-        allowed = {"economy","sports","trends","weather","insight"}
+        allowed = {"economy","sports","trends","insight"}
         seq = [t for t in raw if t in allowed]
         if not seq:
-            await msg.answer("موضوعات نامعتبر. مجاز: economy,sports,trends,weather,insight")
+            await msg.answer("موضوعات نامعتبر. مجاز: economy,sports,trends,insight")
             return
         await db.set_setting("TOPIC_SEQUENCE", ",".join(seq))
         # Re-schedule using current times and new topics sequence
@@ -318,7 +316,7 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
         data = await collect_all(settings)
         data["sentiment"] = await analyze_news_sentiment(settings, data.get("news") or [])
         variants: dict[str, str]
-        if topic and settings.POST_MODE == 'split' and topic in {"economy","sports","trends","weather","insight"}:
+        if topic and settings.POST_MODE == 'split' and topic in {"economy","sports","trends","insight"}:
             structured = await generate_topic_structured(settings, data, topic)
             if structured and isinstance(structured, dict) and structured.get("body"):
                 variants = {"A": render_topic(structured), "B": render_topic(structured)}
@@ -348,7 +346,7 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
         await msg.answer("در حال بازنشر…")
         data = await collect_all(settings)
         data["sentiment"] = await analyze_news_sentiment(settings, data.get("news") or [])
-        if topic and settings.POST_MODE == 'split' and topic in {"economy","sports","trends","weather","insight"}:
+        if topic and settings.POST_MODE == 'split' and topic in {"economy","sports","trends","insight"}:
             structured = await generate_topic_structured(settings, data, topic)
             if structured and isinstance(structured, dict) and structured.get("body"):
                 text = render_topic(structured)
@@ -429,7 +427,7 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
                 plan.append(("topic", t))
             plan.append(("combined", ""))
             # fill up to per_day by repeating economy/trends/insight cycles
-            extras = ["economy", "trends", "insight", "sports", "weather"]
+            extras = ["economy", "trends", "insight", "sports"]
             j = 0
             while len(plan) < per_day:
                 plan.append(("topic", extras[j % len(extras)]))
@@ -458,7 +456,6 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
                             economic=data.get("crypto"),
                             sports=data.get("sports"),
                             trends=data.get("trends"),
-                            weather=data.get("weather"),
                             header_note="⚠️ انتشار آرشیو — تولید خودکار ساده",
                             sentiment=data.get("sentiment"),
                         )
@@ -479,7 +476,7 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
                     if not text.strip():
                         # minimal fallback per topic
                         from telegram_bot.utils.formatting import (
-                            format_economy_post, format_sports_post, format_trends_post, format_weather_post, format_insight_post
+                            format_economy_post, format_sports_post, format_trends_post, format_insight_post
                         )
                         if tname == 'economy':
                             text = format_economy_post(data.get("crypto"), data.get("sentiment"))
@@ -487,8 +484,7 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
                             text = format_sports_post(data.get("sports"))
                         elif tname == 'trends':
                             text = format_trends_post(data.get("trends"), data.get("trends_compare"))
-                        elif tname == 'weather':
-                            text = format_weather_post(data.get("weather"))
+                        # weather topic removed
                         else:
                             text = format_insight_post(None)
 

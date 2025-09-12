@@ -50,7 +50,7 @@ class Settings:
     TRENDS_COMPARE_REGION: str = "united_states"
     # Posting mode
     POST_MODE: str = "split"  # 'split' or 'combined'
-    TOPIC_SEQUENCE: str = "economy,sports,trends,weather,insight"
+    TOPIC_SEQUENCE: str = "economy,sports,trends,insight"
     DETAIL_LEVEL: str = "high"  # 'high'|'medium'|'low'
     ENABLE_IMAGES: bool = True
     IMAGE_SIZE: str = "1024x1024"
@@ -152,6 +152,6 @@ class Settings:
         return [self.DAILY_RUN_AT]
 
     def topics(self) -> list[str]:
-        allowed = {"economy", "sports", "trends", "weather", "insight"}
+        allowed = {"economy", "sports", "trends", "insight"}
         seq = [t.strip().lower() for t in self.TOPIC_SEQUENCE.split(",") if t.strip()]
-        return [t for t in seq if t in allowed] or ["economy", "sports", "trends", "weather", "insight"]
+        return [t for t in seq if t in allowed] or ["economy", "sports", "trends", "insight"]
