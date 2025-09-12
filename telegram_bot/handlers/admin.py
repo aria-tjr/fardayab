@@ -24,7 +24,20 @@ from telegram_bot.ai.structured import (
 )
 from telegram_bot.utils.render import render_combined, render_topic
 from telegram_bot.ai.sentiment import analyze_news_sentiment
-from telegram_bot.utils.formatting import clip_telegram_text, normalize_persian, format_channel_post
+from telegram_bot.utils.formatting import (
+    clip_telegram_text,
+    normalize_persian,
+    format_channel_post,
+    format_economy_post,
+    format_sports_post,
+    format_trends_post,
+    format_weather_post,
+    format_insight_post,
+)
+from telegram_bot.utils.abtest import pick_variant
+import asyncio
+import hashlib
+from datetime import datetime, timedelta, time
 
 
 def admin_router(settings: Settings, scheduler, db: Database) -> Router:
@@ -352,5 +365,152 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
         text = normalize_persian(clip_telegram_text(text))
         await msg.bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=text, disable_web_page_preview=True)
         await msg.answer("منتشر شد.")
+
+    @router.message(Command("seed"))
+    async def seed(msg: Message):
+        if not is_admin(msg):
+            return
+        # Usage:
+        # /seed lastweek [per_day]
+        # /seed days N [per_day]
+        # /seed N [per_day]
+        tokens = msg.text.split()
+        days = 7
+        per_day = 1
+        if len(tokens) >= 2:
+            t1 = tokens[1].lower()
+            if t1 == "lastweek":
+                days = 7
+                if len(tokens) >= 3 and tokens[2].isdigit():
+                    per_day = max(1, int(tokens[2]))
+            elif t1 == "days":
+                days = int(tokens[2]) if len(tokens) >= 3 and tokens[2].isdigit() else 7
+                per_day = int(tokens[3]) if len(tokens) >= 4 and tokens[3].isdigit() else 1
+            elif t1.isdigit():
+                days = int(t1)
+                per_day = int(tokens[2]) if len(tokens) >= 3 and tokens[2].isdigit() else 1
+        await msg.answer(f"شروع پست‌گذاری آرشیو ({days} روز گذشته، روزانه {per_day} پست)…")
+
+        today = datetime.now(ZoneInfo(settings.TIMEZONE)).date()
+        posted = 0
+        last_message_id = None
+        # Helper to finalize and send one text
+        async def _send_one(day_date, data_obj, text_body):
+            nonlocal posted, last_message_id
+            from telegram_bot.utils.formatting import format_sources
+            if settings.INCLUDE_SOURCES:
+                srcs = format_sources((data_obj or {}).get("news"), settings.SOURCES_COUNT)
+                if srcs:
+                    text_body = text_body.rstrip() + "\n" + srcs
+            if settings.INCLUDE_DISCLAIMER and settings.DISCLAIMER_TEXT:
+                text_body = (text_body.rstrip() + "\n\n" + settings.DISCLAIMER_TEXT).strip()
+            text_body = normalize_persian(clip_telegram_text(text_body))
+            try:
+                sent = await msg.bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=text_body, disable_web_page_preview=True)
+                last_message_id = sent.message_id
+                ch = hashlib.sha256(text_body.encode('utf-8')).hexdigest()
+                ts_seed = int(datetime.combine(day_date, time(12, 0), tzinfo=ZoneInfo(settings.TIMEZONE)).timestamp())
+                await db.record_run(ts_seed, "seed", "multi", sent.message_id, None, topic="seed", content_hash=ch)
+                posted += 1
+                await asyncio.sleep(2.0)
+            except Exception:
+                pass
+
+        for i in range(days, 0, -1):
+            day = today - timedelta(days=i)
+            snap = await db.get_snapshot(day.isoformat())
+            if not snap:
+                continue
+            data = (snap.get("data") or {})
+            # build a plan for the day: topics sequence, then combined, then repeat top topics with alternate variants
+            plan: list[tuple[str, str]] = []  # (kind, topic) where kind in {"topic","combined"}
+            seq = settings.topics()
+            for t in seq:
+                plan.append(("topic", t))
+            plan.append(("combined", ""))
+            # fill up to per_day by repeating economy/trends/insight cycles
+            extras = ["economy", "trends", "insight", "sports", "weather"]
+            j = 0
+            while len(plan) < per_day:
+                plan.append(("topic", extras[j % len(extras)]))
+                j += 1
+            # generate and send according to plan
+            used_hashes: set[str] = set()
+            toggle = True  # toggle A/B
+            for kind, tname in plan[:per_day]:
+                text = ""
+                if kind == "combined":
+                    try:
+                        structured = await generate_combined_structured(settings, data)
+                    except Exception:
+                        structured = None
+                    if structured and isinstance(structured, dict):
+                        text = render_combined(structured)
+                    else:
+                        try:
+                            vars = await generate_post_variants(settings, data)
+                        except Exception:
+                            vars = {"A": "", "B": ""}
+                        text = vars.get('A' if toggle else 'B') or ""
+                        toggle = not toggle
+                    if not text.strip():
+                        text = format_channel_post(
+                            economic=data.get("crypto"),
+                            sports=data.get("sports"),
+                            trends=data.get("trends"),
+                            weather=data.get("weather"),
+                            header_note="⚠️ انتشار آرشیو — تولید خودکار ساده",
+                            sentiment=data.get("sentiment"),
+                        )
+                else:  # topic
+                    try:
+                        structured = await generate_topic_structured(settings, data, tname)
+                    except Exception:
+                        structured = None
+                    if structured and isinstance(structured, dict) and structured.get("body"):
+                        text = render_topic(structured)
+                    else:
+                        try:
+                            vars = await generate_topic_variants(settings, data, tname, detail_level=settings.DETAIL_LEVEL)
+                        except Exception:
+                            vars = {"A": "", "B": ""}
+                        text = vars.get('A' if toggle else 'B') or ""
+                        toggle = not toggle
+                    if not text.strip():
+                        # minimal fallback per topic
+                        from telegram_bot.utils.formatting import (
+                            format_economy_post, format_sports_post, format_trends_post, format_weather_post, format_insight_post
+                        )
+                        if tname == 'economy':
+                            text = format_economy_post(data.get("crypto"), data.get("sentiment"))
+                        elif tname == 'sports':
+                            text = format_sports_post(data.get("sports"))
+                        elif tname == 'trends':
+                            text = format_trends_post(data.get("trends"), data.get("trends_compare"))
+                        elif tname == 'weather':
+                            text = format_weather_post(data.get("weather"))
+                        else:
+                            text = format_insight_post(None)
+
+                # prevent duplicates within same day seed set
+                h = hashlib.sha256((text or "").encode('utf-8')).hexdigest()
+                if h in used_hashes or not (text or '').strip():
+                    continue
+                used_hashes.add(h)
+                await _send_one(day, data, text)
+        # Pin the last seeded message if enabled
+        try:
+            if settings.PIN_POSTS and last_message_id:
+                prev = await db.get_setting("PINNED_MSG_ID")
+                if prev:
+                    try:
+                        await msg.bot.unpin_chat_message(chat_id=settings.TELEGRAM_CHANNEL_ID, message_id=int(prev))
+                    except Exception:
+                        pass
+                await msg.bot.pin_chat_message(chat_id=settings.TELEGRAM_CHANNEL_ID, message_id=last_message_id)
+                await db.set_setting("PINNED_MSG_ID", str(last_message_id))
+        except Exception:
+            pass
+        await msg.answer(f"انجام شد. {posted} پست از آرشیو منتشر شد.")
 
     return router
