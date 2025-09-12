@@ -9,7 +9,7 @@ from openai import OpenAI
 from telegram_bot.config.settings import Settings
 
 
-SYSTEM_PROMPT = (
+SYSTEM_PROMPT_BASE = (
     "You are a senior Persian social media copywriter and analyst. "
     "Task: produce a daily Telegram post in Persian only with a fixed structure and rich content. "
     "Mandatory sections and rules: \n"
@@ -22,7 +22,7 @@ SYSTEM_PROMPT = (
 )
 
 
-def _build_user_prompt(data: dict[str, Any], variant: str) -> str:
+def _build_user_prompt(data: dict[str, Any], variant: str, tone: str, persona: str) -> str:
     templ = (
         "Template (Persian only):\n"
         "📊 اقتصاد:\n"
@@ -42,6 +42,8 @@ def _build_user_prompt(data: dict[str, Any], variant: str) -> str:
     data_json = json.dumps(data, ensure_ascii=False)
     return (
         f"Variant: {variant}\n"
+        f"Persona: {persona}\n"
+        f"Tone: {tone}\n"
         f"Data (JSON):\n{data_json}\n\n"
         f"{templ}"
         "Guidelines: include reasons, scenarios, yesterday comparison if provided, storytelling tone; 3-6 hashtags; readable numbers; Persian only."
@@ -66,16 +68,17 @@ async def _call_openai(settings: Settings, system_prompt: str, user_prompt: str)
 
 async def generate_post_variants(settings: Settings, data: dict[str, Any]) -> dict[str, str]:
     # Build two variants for A/B
-    pA = _build_user_prompt(data, "A")
-    pB = _build_user_prompt(data, "B")
+    pA = _build_user_prompt(data, "A", settings.TONE, settings.PERSONA)
+    pB = _build_user_prompt(data, "B", settings.TONE, settings.PERSONA)
 
     if not settings.OPENAI_API_KEY:
         # No key: return empty to signal fallback usage
         return {"A": "", "B": ""}
 
+    system = f"{SYSTEM_PROMPT_BASE} Style should be {settings.TONE}; persona: {settings.PERSONA}."
     textA, textB = await asyncio.gather(
-        _call_openai(settings, SYSTEM_PROMPT, pA),
-        _call_openai(settings, SYSTEM_PROMPT, pB),
+        _call_openai(settings, system, pA),
+        _call_openai(settings, system, pB),
     )
     return {"A": textA.strip(), "B": textB.strip()}
 
@@ -124,7 +127,7 @@ TOPIC_SYSTEMS = {
 }
 
 
-def _topic_user_prompt(topic: str, data: dict[str, Any], detail_level: str, variant: str) -> str:
+def _topic_user_prompt(topic: str, data: dict[str, Any], detail_level: str, variant: str, tone: str, persona: str) -> str:
     extra = {
         "high": "Aim for ~220-280 words; include 2-3 short sub-bullets where helpful.",
         "medium": "Aim for ~150-200 words; keep concise.",
@@ -134,6 +137,8 @@ def _topic_user_prompt(topic: str, data: dict[str, Any], detail_level: str, vari
         f"Variant: {variant}\n"
         f"Topic: {topic}\n"
         f"Detail: {detail_level}\n"
+        f"Persona: {persona}\n"
+        f"Tone: {tone}\n"
         f"Data(JSON):\n{json.dumps(data, ensure_ascii=False)}\n\n"
         f"Output in Persian only. {extra} Use emojis sparingly but effectively."
     )
@@ -142,9 +147,9 @@ def _topic_user_prompt(topic: str, data: dict[str, Any], detail_level: str, vari
 async def generate_topic_variants(settings: Settings, data: dict[str, Any], topic: str, detail_level: str = "high") -> dict[str, str]:
     if not settings.OPENAI_API_KEY:
         return {"A": "", "B": ""}
-    system = TOPIC_SYSTEMS.get(topic, TOPIC_SYSTEMS["insight"])
-    pA = _topic_user_prompt(topic, data, detail_level, "A")
-    pB = _topic_user_prompt(topic, data, detail_level, "B")
+    system = TOPIC_SYSTEMS.get(topic, TOPIC_SYSTEMS["insight"]) + f" Style should be {settings.TONE}; persona: {settings.PERSONA}."
+    pA = _topic_user_prompt(topic, data, detail_level, "A", settings.TONE, settings.PERSONA)
+    pB = _topic_user_prompt(topic, data, detail_level, "B", settings.TONE, settings.PERSONA)
     textA, textB = await asyncio.gather(
         _call_openai(settings, system, pA),
         _call_openai(settings, system, pB),

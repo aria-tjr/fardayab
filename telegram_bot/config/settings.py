@@ -58,6 +58,19 @@ class Settings:
     STRUCTURED_GENERATION: bool = True
     OPENAI_MODEL_LIGHT: str = "gpt-4o-mini"
     ENABLE_MODERATION: bool = False
+    # Content footers
+    INCLUDE_DISCLAIMER: bool = True
+    DISCLAIMER_TEXT: str = "⚠️ این مطلب صرفاً اطلاع‌رسانی است و توصیه مالی نیست."
+    # Content sources footer
+    INCLUDE_SOURCES: bool = True
+    SOURCES_COUNT: int = 3
+    # Persona and tone
+    TONE: str = "engaging"
+    PERSONA: str = "Persian social media analyst"
+    # Channel control
+    PIN_POSTS: bool = True
+    # Intelligent scheduling
+    DYNAMIC_SCHEDULING: bool = True
     # Auto scheduling
     AUTO_SCHEDULE: bool = True
     AUTO_BOOTSTRAP_DAYS: int = 7
@@ -109,6 +122,14 @@ class Settings:
         object.__setattr__(self, "STRUCTURED_GENERATION", os.getenv("STRUCTURED_GENERATION", "1" if self.STRUCTURED_GENERATION else "0") == "1")
         object.__setattr__(self, "OPENAI_MODEL_LIGHT", os.getenv("OPENAI_MODEL_LIGHT", self.OPENAI_MODEL_LIGHT))
         object.__setattr__(self, "ENABLE_MODERATION", os.getenv("ENABLE_MODERATION", "1" if self.ENABLE_MODERATION else "0") == "1")
+        object.__setattr__(self, "INCLUDE_DISCLAIMER", os.getenv("INCLUDE_DISCLAIMER", "1" if self.INCLUDE_DISCLAIMER else "0") == "1")
+        object.__setattr__(self, "DISCLAIMER_TEXT", os.getenv("DISCLAIMER_TEXT", self.DISCLAIMER_TEXT))
+        object.__setattr__(self, "INCLUDE_SOURCES", os.getenv("INCLUDE_SOURCES", "1" if self.INCLUDE_SOURCES else "0") == "1")
+        object.__setattr__(self, "SOURCES_COUNT", int(os.getenv("SOURCES_COUNT", str(self.SOURCES_COUNT))))
+        object.__setattr__(self, "TONE", os.getenv("TONE", self.TONE))
+        object.__setattr__(self, "PERSONA", os.getenv("PERSONA", self.PERSONA))
+        object.__setattr__(self, "PIN_POSTS", os.getenv("PIN_POSTS", "1" if self.PIN_POSTS else "0") == "1")
+        object.__setattr__(self, "DYNAMIC_SCHEDULING", os.getenv("DYNAMIC_SCHEDULING", "1" if self.DYNAMIC_SCHEDULING else "0") == "1")
         object.__setattr__(self, "AUTO_SCHEDULE", os.getenv("AUTO_SCHEDULE", "1" if self.AUTO_SCHEDULE else "0") == "1")
         object.__setattr__(self, "AUTO_BOOTSTRAP_DAYS", int(os.getenv("AUTO_BOOTSTRAP_DAYS", str(self.AUTO_BOOTSTRAP_DAYS))))
         object.__setattr__(self, "AUTO_BOOTSTRAP_TIMES", os.getenv("AUTO_BOOTSTRAP_TIMES", self.AUTO_BOOTSTRAP_TIMES))

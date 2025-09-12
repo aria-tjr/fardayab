@@ -12,6 +12,7 @@ from telegram_bot.config.settings import Settings
 from telegram_bot.utils.logging import setup_logging
 from telegram_bot.handlers.admin import admin_router
 from telegram_bot.scheduler.scheduler import build_scheduler
+from telegram_bot.scheduler.autoschedule import apply_autoschedule
 from telegram_bot.data.db import Database
 from telegram_bot.handlers.polls import polls_router
 
@@ -50,6 +51,11 @@ async def main() -> None:
 
     scheduler = build_scheduler(settings, bot, db)
     scheduler.start()
+    # Align schedule with DB topic map and dynamic times at startup
+    try:
+        await apply_autoschedule(scheduler, bot, settings, db, settings.TIMEZONE)
+    except Exception:
+        logging.getLogger(__name__).warning("autoschedule at startup failed", exc_info=True)
 
     dp.include_router(admin_router(settings, scheduler, db))
     dp.include_router(polls_router(db))

@@ -13,6 +13,18 @@ from telegram_bot.scheduler.jobs import daily_job
 from telegram_bot.scheduler.scheduler import build_scheduler, reschedule_times
 from telegram_bot.scheduler.autoschedule import apply_autoschedule
 from telegram_bot.utils.timeutils import parse_hhmm
+from telegram_bot.modules.collector import collect_all
+from telegram_bot.ai.generator import (
+    generate_post_variants,
+    generate_topic_variants,
+)
+from telegram_bot.ai.structured import (
+    generate_combined_structured,
+    generate_topic_structured,
+)
+from telegram_bot.utils.render import render_combined, render_topic
+from telegram_bot.ai.sentiment import analyze_news_sentiment
+from telegram_bot.utils.formatting import clip_telegram_text, normalize_persian, format_channel_post
 
 
 def admin_router(settings: Settings, scheduler, db: Database) -> Router:
@@ -73,6 +85,28 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
             f"- زمان‌ها/موضوعات: \n" + ("\n".join(sorted(lines)) if lines else settings.DAILY_RUN_AT) + "\n"
             f"- آخرین اجرا: {lr_txt}"
         )
+
+    @router.message(Command("health"))
+    async def health(msg: Message):
+        if not is_admin(msg):
+            return
+        try:
+            # quick DB check
+            lr = await db.last_run()
+            jobs = scheduler.get_jobs()
+            keys = {
+                "OPENAI": bool(settings.OPENAI_API_KEY),
+                "WEATHER": bool(settings.OPENWEATHER_KEY),
+                "NEWS": bool(settings.NEWSAPI_KEY or settings.NEWSDATA_KEY or settings.MEDIASTACK_KEY),
+            }
+            await msg.answer(
+                "سلامت سیستم:\n"
+                f"- Jobs: {len(jobs)}\n"
+                f"- آخرین اجرا: {('ok' if lr else '—')}\n"
+                f"- کلیدها: OpenAI={keys['OPENAI']} Weather={keys['WEATHER']} News={keys['NEWS']}\n"
+            )
+        except Exception as e:
+            await msg.answer(f"Health error: {e}")
 
     @router.message(Command("settime"))
     async def set_time(msg: Message):
@@ -247,5 +281,76 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
         settings.__dict__["TOPIC_SEQUENCE"] = ",".join(seq)
         reschedule_times(scheduler, settings.TIMEZONE, times, bot=msg.bot, settings=settings, db=db)
         await msg.answer("ترتیب موضوعات به‌روزرسانی شد و روی زمان‌های فعلی اعمال شد.")
+
+    @router.message(Command("pin"))
+    async def pin_toggle(msg: Message):
+        if not is_admin(msg):
+            return
+        parts = msg.text.split()
+        if len(parts) != 2 or parts[1] not in ("on", "off"):
+            await msg.answer("فرمت: /pin on|off")
+            return
+        val = parts[1] == "on"
+        settings.__dict__["PIN_POSTS"] = val
+        await db.set_setting("PIN_POSTS", "1" if val else "0")
+        await msg.answer(f"پین خودکار: {'فعال' if val else 'غیرفعال'}")
+
+    @router.message(Command("dryrun"))
+    async def dryrun(msg: Message):
+        if not is_admin(msg):
+            return
+        parts = msg.text.split(maxsplit=1)
+        topic = (parts[1].strip().lower() if len(parts) == 2 else None)
+        await msg.answer("در حال تولید پیش‌نمایش…")
+        data = await collect_all(settings)
+        data["sentiment"] = await analyze_news_sentiment(settings, data.get("news") or [])
+        variants: dict[str, str]
+        if topic and settings.POST_MODE == 'split' and topic in {"economy","sports","trends","weather","insight"}:
+            structured = await generate_topic_structured(settings, data, topic)
+            if structured and isinstance(structured, dict) and structured.get("body"):
+                variants = {"A": render_topic(structured), "B": render_topic(structured)}
+            else:
+                variants = await generate_topic_variants(settings, data, topic, detail_level=settings.DETAIL_LEVEL)
+        else:
+            structured = await generate_combined_structured(settings, data)
+            if structured and isinstance(structured, dict):
+                variants = {"A": render_combined(structured), "B": render_combined(structured)}
+            else:
+                variants = await generate_post_variants(settings, data)
+        a = normalize_persian(clip_telegram_text(variants.get('A') or ''))
+        b = normalize_persian(clip_telegram_text(variants.get('B') or ''))
+        await msg.answer("پیش‌نمایش A:\n" + a[:1000])
+        await msg.answer("پیش‌نمایش B:\n" + b[:1000])
+
+    @router.message(Command("repost"))
+    async def repost(msg: Message):
+        if not is_admin(msg):
+            return
+        parts = msg.text.split()
+        if len(parts) < 2 or parts[1] not in ("A","B"):
+            await msg.answer("فرمت: /repost A|B [topic]")
+            return
+        variant_force = parts[1]
+        topic = parts[2].lower() if len(parts) >= 3 else None
+        await msg.answer("در حال بازنشر…")
+        data = await collect_all(settings)
+        data["sentiment"] = await analyze_news_sentiment(settings, data.get("news") or [])
+        if topic and settings.POST_MODE == 'split' and topic in {"economy","sports","trends","weather","insight"}:
+            structured = await generate_topic_structured(settings, data, topic)
+            if structured and isinstance(structured, dict) and structured.get("body"):
+                text = render_topic(structured)
+            else:
+                var = await generate_topic_variants(settings, data, topic, detail_level=settings.DETAIL_LEVEL)
+                text = var.get(variant_force) or ''
+        else:
+            structured = await generate_combined_structured(settings, data)
+            if structured and isinstance(structured, dict):
+                text = render_combined(structured)
+            else:
+                var = await generate_post_variants(settings, data)
+                text = var.get(variant_force) or ''
+        text = normalize_persian(clip_telegram_text(text))
+        await msg.bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=text, disable_web_page_preview=True)
+        await msg.answer("منتشر شد.")
 
     return router

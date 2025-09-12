@@ -152,3 +152,57 @@ def format_insight_post(insight: str | None) -> str:
     lines.append(insight or "امروز باهوش‌تر از دیروز! 🧠")
     lines.append("\n#دانستنی #نکته")
     return "\n".join(lines)
+
+
+def clip_telegram_text(text: str, limit: int = 4096) -> str:
+    """Ensure message fits Telegram's hard limit.
+    Keeps as much as possible and appends an ellipsis when clipping.
+    """
+    if text is None:
+        return ""
+    if len(text) <= limit:
+        return text
+    # Reserve one char for ellipsis
+    keep = max(0, limit - 1)
+    return text[:keep].rstrip() + "…"
+
+
+def normalize_persian(text: str) -> str:
+    """Normalize digits and common Arabic variants to Persian typography.
+    - Western digits 0-9 -> Persian ۰-۹
+    - Arabic y,k -> Persian ی,ک
+    """
+    if not text:
+        return ""
+    trans = str.maketrans({
+        "0": "۰", "1": "۱", "2": "۲", "3": "۳", "4": "۴",
+        "5": "۵", "6": "۶", "7": "۷", "8": "۸", "9": "۹",
+        "ي": "ی", "ك": "ک",
+    })
+    return text.translate(trans)
+
+
+def format_sources(news: list[dict] | None, count: int = 3) -> str:
+    if not news:
+        return ""
+    import re
+    def domain(u: str | None) -> str:
+        if not u:
+            return ""
+        try:
+            from urllib.parse import urlparse
+            d = urlparse(u).netloc
+            return d.replace("www.", "")
+        except Exception:
+            return ""
+    items = []
+    for it in (news or [])[:count]:
+        src = it.get("source") or domain(it.get("url"))
+        title = (it.get("title") or "").strip()
+        if src and title:
+            items.append(f"• {src}: {title}")
+        elif src:
+            items.append(f"• {src}")
+    if not items:
+        return ""
+    return "\n".join(["\nمنابع:"] + items)

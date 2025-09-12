@@ -60,3 +60,39 @@ async def topic_variant_stats(db: Database, topic: str) -> dict[str, int]:
         async for row in cur:
             out[str(row[0])] = int(row[1] or 0)
     return out
+
+
+async def top_hours_by_votes(db: Database, k: int = 3, days: int = 14, tz: str = "Asia/Tehran") -> list[str]:
+    """Return top k hours-of-day (HH:00) by total poll votes in last N days.
+    Uses poll creation timestamps as proxy for post time.
+    """
+    import time
+    from zoneinfo import ZoneInfo
+    cutoff = int(time.time()) - days * 86400
+    # gather (ts, votes)
+    rows: list[tuple[int, int]] = []
+    async with db.conn.execute(
+        """
+        SELECT p.ts, COALESCE(SUM(v.votes), 0) as votes
+        FROM polls p
+        LEFT JOIN poll_votes v USING(poll_id)
+        WHERE p.ts >= ?
+        GROUP BY p.poll_id
+        """,
+        (cutoff,),
+    ) as cur:
+        async for ts, votes in cur:
+            rows.append((int(ts), int(votes or 0)))
+    if not rows:
+        return []
+    # bucket by hour-of-day in local tz
+    from datetime import datetime
+    buckets: dict[int, int] = {}
+    z = ZoneInfo(tz)
+    for ts, v in rows:
+        hh = datetime.fromtimestamp(ts, tz=z).hour
+        buckets[hh] = buckets.get(hh, 0) + max(0, v)
+    if not buckets:
+        return []
+    top = sorted(buckets.items(), key=lambda x: (-x[1], x[0]))[: max(1, k)]
+    return [f"{h:02d}:00" for h, _ in top]

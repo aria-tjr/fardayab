@@ -128,7 +128,21 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
         got = await db.acquire_lock(lock_key, ttl=600)
         if not got:
             return
-        msg = await bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=text)
+        # Optional sources, disclaimer, normalization and safe clipping
+        from telegram_bot.utils.formatting import clip_telegram_text, normalize_persian, format_sources
+        if settings.INCLUDE_SOURCES:
+            srcs = format_sources((data or {}).get("news"), settings.SOURCES_COUNT)
+            if srcs:
+                text = text.rstrip() + "\n" + srcs
+        if settings.INCLUDE_DISCLAIMER and settings.DISCLAIMER_TEXT:
+            text = (text.rstrip() + "\n\n" + settings.DISCLAIMER_TEXT).strip()
+        text = normalize_persian(text)
+        text = clip_telegram_text(text)
+        msg = await bot.send_message(
+            chat_id=settings.TELEGRAM_CHANNEL_ID,
+            text=text,
+            disable_web_page_preview=True,
+        )
 
         # Optional: chart image for BTC, economy topic only or combined
         if settings.ENABLE_CHARTS and (settings.POST_MODE != 'split' or topic == 'economy'):
@@ -163,6 +177,19 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
             except Exception:
                 log.warning("poll failed", exc_info=True)
         await db.record_run(ts, "ok", variant, msg.message_id, None, topic=topic, content_hash=content_hash)
+        # Pin management (keep latest pinned)
+        if settings.PIN_POSTS:
+            try:
+                prev = await db.get_setting("PINNED_MSG_ID")
+                if prev:
+                    try:
+                        await bot.unpin_chat_message(chat_id=settings.TELEGRAM_CHANNEL_ID, message_id=int(prev))
+                    except Exception:
+                        pass
+                await bot.pin_chat_message(chat_id=settings.TELEGRAM_CHANNEL_ID, message_id=msg.message_id)
+                await db.set_setting("PINNED_MSG_ID", str(msg.message_id))
+            except Exception:
+                log.warning("pin/unpin failed", exc_info=True)
         # Link poll if any
         try:
             if poll_msg and getattr(poll_msg, 'poll', None):

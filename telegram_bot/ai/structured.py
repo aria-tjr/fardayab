@@ -33,7 +33,8 @@ async def generate_combined_structured(settings: Settings, data: dict[str, Any])
         return None
     client = OpenAI(api_key=settings.OPENAI_API_KEY)
     system = (
-        "Produce a Persian-only structured daily post covering economy, sports, trends, weather, and an insight."
+        "Produce a Persian-only structured daily post covering economy, sports, trends, weather, and an insight. "
+        f"Style should be {settings.TONE}; persona: {settings.PERSONA}."
     )
     prompt = json.dumps({"data": data}, ensure_ascii=False)
     return await _responses_schema(client, settings.OPENAI_MODEL, system, prompt, combined_schema())
@@ -43,7 +44,6 @@ async def generate_topic_structured(settings: Settings, data: dict[str, Any], to
     if not (settings.OPENAI_API_KEY and settings.STRUCTURED_GENERATION):
         return None
     client = OpenAI(api_key=settings.OPENAI_API_KEY)
-    system = f"Produce a Persian-only structured post body and hashtags for topic: {topic}."
+    system = f"Produce a Persian-only structured post body and hashtags for topic: {topic}. Style should be {settings.TONE}; persona: {settings.PERSONA}."
     prompt = json.dumps({"topic": topic, "data": data}, ensure_ascii=False)
     return await _responses_schema(client, settings.OPENAI_MODEL, system, prompt, topic_schema(topic))
-
