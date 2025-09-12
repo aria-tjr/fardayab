@@ -1,7 +1,7 @@
 {
   "build": {
-    "type": "python",
-    "command": "cd telegram_bot && python3 main.py"
+    "type": "docker",
+    "dockerfile": "telegram_bot/Dockerfile"
   },
   "environment": {
     "PYTHONPATH": "/app/telegram_bot",
