@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  bot:
+    build:
+      context: ./telegram_bot
+    container_name: telegram-content-bot
+    restart: unless-stopped
+    env_file:
+      - ./config/.env
+    environment:
+      - TZ=${TIMEZONE:-UTC}
+    volumes:
+      - ./data:/app/data
+    # Healthcheck: bot uses long polling; basic python process check
+    healthcheck:
+      test: ["CMD-SHELL", "python -c 'import os; import sys; sys.exit(0 if os.path.exists(\"/app\") else 1)' "]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+networks:
+  default:
+    name: tg-bot-net
