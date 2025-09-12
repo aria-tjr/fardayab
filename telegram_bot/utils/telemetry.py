@@ -44,12 +44,19 @@ async def add_poll_vote(db: Database, poll_id: str, option_index: int, delta: in
 
 async def topic_variant_stats(db: Database, topic: str) -> dict[str, int]:
     # Sum votes over last 14 days for polls of given topic
+    import time
+    cutoff = int(time.time()) - 14 * 86400
     out = {"A": 0, "B": 0}
     async with db.conn.execute(
-        "SELECT p.variant, SUM(v.votes) FROM polls p JOIN poll_votes v USING(poll_id) WHERE p.topic=? GROUP BY p.variant",
-        (topic,),
+        """
+        SELECT p.variant, COALESCE(SUM(v.votes), 0)
+        FROM polls p
+        JOIN poll_votes v USING(poll_id)
+        WHERE p.topic = ? AND p.ts >= ?
+        GROUP BY p.variant
+        """,
+        (topic, cutoff),
     ) as cur:
         async for row in cur:
             out[str(row[0])] = int(row[1] or 0)
     return out
-

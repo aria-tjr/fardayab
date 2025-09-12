@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 from aiogram import Bot, Dispatcher
@@ -15,10 +16,31 @@ from telegram_bot.data.db import Database
 from telegram_bot.handlers.polls import polls_router
 
 
+def _load_env() -> None:
+    # Try a few likely locations so this works in Docker and local
+    here = Path(__file__).resolve()
+    candidates = [
+        here.parent.parent / "config/.env",   # project_root/config/.env
+        here.parent / "config/.env",          # telegram_bot/config/.env (if provided)
+        Path.cwd() / "config/.env",           # CWD/config/.env
+        Path.cwd() / ".env",                  # CWD/.env
+    ]
+    for p in candidates:
+        if p.is_file():
+            load_dotenv(p, override=False)
+            break
+    else:
+        # Fallback to default behavior (env already in process)
+        load_dotenv(override=False)
+
+
 async def main() -> None:
-    load_dotenv("config/.env", override=False)
+    _load_env()
     settings = Settings()
     setup_logging(settings)
+
+    if not settings.TELEGRAM_BOT_TOKEN:
+        raise RuntimeError("TELEGRAM_BOT_TOKEN is not set. Configure config/.env or environment.")
 
     bot = Bot(token=settings.TELEGRAM_BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()

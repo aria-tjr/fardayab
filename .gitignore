@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.mypy_cache/
+.pytest_cache/
+.hypothesis/
+.coverage*
+coverage.xml
+nosetests.xml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local data and logs
+data/*.db
+data/*.log
+*.db
+*.log
+
+# Env files
+config/.env
+.env
+
+# Deployment artifacts and secrets
+deploy/
+*.key
+*.pem
+*.b64
+*.pub
+id_* 
+codex_deploy_ed25519*

@@ -6,13 +6,6 @@ import httpx
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=8))
-async def _get_json(client: httpx.AsyncClient, url: str, params: dict[str, Any] | None = None) -> Any:
-    r = await client.get(url, params=params, timeout=client.timeout)
-    r.raise_for_status()
-    return r.json()
-
-
 async def fetch_next_events_thesportsdb(api_key: str, league_ids: list[str], timeout: float = 15.0) -> list[dict]:
     if not league_ids:
         return []
@@ -47,7 +40,12 @@ async def fetch_next_events_thesportsdb(api_key: str, league_ids: list[str], tim
 
 
 @retry(stop=stop_after_attempt(3), wait=wait_exponential(min=1, max=8))
-async def _get_json(client: httpx.AsyncClient, url: str, params: dict[str, Any] | None = None, headers: dict[str, str] | None = None) -> Any:
+async def _get_json(
+    client: httpx.AsyncClient,
+    url: str,
+    params: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
+) -> Any:
     r = await client.get(url, params=params, headers=headers, timeout=client.timeout)
     r.raise_for_status()
     return r.json()
