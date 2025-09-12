@@ -1,10 +1,14 @@
 {
   "build": {
-    "type": "docker",
-    "dockerfile": "telegram_bot/Dockerfile"
+    "type": "python",
+    "python_version": "3.12"
   },
   "environment": {
     "PYTHONPATH": "/app/telegram_bot",
-    "PYTHONUNBUFFERED": "1"
+    "PYTHONUNBUFFERED": "1",
+    "RAILPACK_PYTHON_VERSION": "3.12"
+  },
+  "deploy": {
+    "start_command": "python3 main.py"
   }
 }
