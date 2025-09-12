@@ -1,0 +1,10 @@
+{
+  "build": {
+    "type": "python",
+    "command": "cd telegram_bot && python main.py"
+  },
+  "environment": {
+    "PYTHONPATH": "/app/telegram_bot",
+    "PYTHONUNBUFFERED": "1"
+  }
+}
