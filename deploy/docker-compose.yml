@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  telegram-bot:
+    build:
+      context: ../telegram_bot
+      dockerfile: Dockerfile
+    container_name: telegram-bot
+    env_file:
+      - ../config/.env
+    environment:
+      - TZ=Asia/Tehran
+    volumes:
+      - ../config/.env:/app/config/.env:ro
+      - ../data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os,sys; sys.exit(0)"]
+      interval: 1m
+      timeout: 5s
+      retries: 3
+      start_period: 20s

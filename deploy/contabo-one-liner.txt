@@ -1,0 +1,4 @@
+# Copy and paste this entire command into your VNC console (207.180.255.168:63178)
+# VNC Password: S35HdcCw
+
+curl -s https://raw.githubusercontent.com/your-repo/contabo-deploy/main/deploy.sh | bash

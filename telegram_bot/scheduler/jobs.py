@@ -12,8 +12,11 @@ from telegram_bot.data.db import Database
 from telegram_bot.modules.collector import collect_all
 from telegram_bot.utils.formatting import format_channel_post
 from telegram_bot.utils.abtest import pick_variant
+from telegram_bot.utils.telemetry import topic_variant_stats
 from telegram_bot.utils.timeutils import now_tz
 from telegram_bot.ai.generator import generate_post_variants, generate_admin_suggestions, generate_topic_variants
+from telegram_bot.ai.structured import generate_combined_structured, generate_topic_structured
+from telegram_bot.utils.render import render_combined, render_topic
 from telegram_bot.ai.sentiment import analyze_news_sentiment
 from telegram_bot.modules.crypto import fetch_btc_market_chart
 from telegram_bot.modules.charts import btc_chart_url
@@ -44,14 +47,36 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
             data["yesterday"] = {"day": yday.isoformat(), "snapshot": prev_snapshot}
         # Determine topic for this run
         topic = (topic or (settings.POST_MODE == 'split' and 'economy') or 'combined').lower()
-        # Generate variants according to mode
+        # Generate variants according to mode (prefer structured → fallback to text)
+        variants: dict[str, str]
         if settings.POST_MODE == 'split' and topic in {"economy", "sports", "trends", "weather", "insight"}:
-            variants = await generate_topic_variants(settings, data, topic, detail_level=settings.DETAIL_LEVEL)
+            structured = await generate_topic_structured(settings, data, topic)
+            if structured and isinstance(structured, dict) and structured.get("body"):
+                variants = {"A": render_topic(structured), "B": render_topic(structured)}
+            else:
+                variants = await generate_topic_variants(settings, data, topic, detail_level=settings.DETAIL_LEVEL)
         else:
-            variants = await generate_post_variants(settings, data)
+            structured = await generate_combined_structured(settings, data)
+            if structured and isinstance(structured, dict):
+                variants = {"A": render_combined(structured), "B": render_combined(structured)}
+            else:
+                variants = await generate_post_variants(settings, data)
 
         # Choose variant deterministically by date
-        variant = pick_variant(today, settings.AB_SEED)
+        # Variant choice: bandit on poll stats if available
+        if settings.POST_MODE == 'split' and topic in {"economy","trends"}:
+            try:
+                stats = await topic_variant_stats(db, topic)
+                a = max(1, stats.get('A', 0))
+                b = max(1, stats.get('B', 0))
+                import random
+                total = a + b
+                r = random.random() * total
+                variant = 'A' if r < a else 'B'
+            except Exception:
+                variant = pick_variant(today, settings.AB_SEED)
+        else:
+            variant = pick_variant(today, settings.AB_SEED)
         text = variants.get(variant) or ""
 
         if not text.strip():
@@ -125,9 +150,10 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
                 log.warning("image generation failed", exc_info=True)
 
         # Optional: poll for engagement (economy/trends posts)
+        poll_msg = None
         if settings.ENABLE_POLL and (settings.POST_MODE != 'split' or topic in {'economy','trends'}):
             try:
-                await bot.send_poll(
+                poll_msg = await bot.send_poll(
                     chat_id=settings.TELEGRAM_CHANNEL_ID,
                     question="فردا بیت‌کوین چگونه خواهد بود؟",
                     options=["صعودی", "نزولی", "رنج/خنثی"],
@@ -137,6 +163,13 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
             except Exception:
                 log.warning("poll failed", exc_info=True)
         await db.record_run(ts, "ok", variant, msg.message_id, None, topic=topic, content_hash=content_hash)
+        # Link poll if any
+        try:
+            if poll_msg and getattr(poll_msg, 'poll', None):
+                from telegram_bot.utils.telemetry import record_poll_message
+                await record_poll_message(db, poll_msg.poll.id, poll_msg.message_id, topic, variant, ts)
+        except Exception:
+            log.warning("poll record failed", exc_info=True)
         # store snapshot of today for comparisons
         try:
             await db.set_snapshot(today.isoformat(), {"data": data, "variant": variant})

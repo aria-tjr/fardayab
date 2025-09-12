@@ -15,9 +15,12 @@ class Settings:
 
     # APIs
     NEWSAPI_KEY: str = ""
+    NEWSDATA_KEY: str = ""
+    MEDIASTACK_KEY: str = ""
     OPENWEATHER_KEY: str = ""
     THESPORTSDB_KEY: str = "1"  # '1' public test key
     API_FOOTBALL_KEY: str = ""
+    API_SPORTS_KEY: str = ""
 
     # Scheduling
     TIMEZONE: str = "Asia/Tehran"
@@ -39,6 +42,7 @@ class Settings:
 
     # Feeds/Leagues
     THESPORTSDB_LEAGUE_IDS: str = "4328,4335"  # EPL, LaLiga
+    API_SPORTS_LEAGUE_IDS: str = "39,140"  # EPL, LaLiga (API-Sports)
 
     # Features
     ENABLE_CHARTS: bool = True
@@ -50,6 +54,10 @@ class Settings:
     DETAIL_LEVEL: str = "high"  # 'high'|'medium'|'low'
     ENABLE_IMAGES: bool = True
     IMAGE_SIZE: str = "1024x1024"
+    # AI controls
+    STRUCTURED_GENERATION: bool = True
+    OPENAI_MODEL_LIGHT: str = "gpt-4o-mini"
+    ENABLE_MODERATION: bool = False
     # Auto scheduling
     AUTO_SCHEDULE: bool = True
     AUTO_BOOTSTRAP_DAYS: int = 7
@@ -66,9 +74,12 @@ class Settings:
         object.__setattr__(self, "OPENAI_MODEL", os.getenv("OPENAI_MODEL", self.OPENAI_MODEL))
 
         object.__setattr__(self, "NEWSAPI_KEY", os.getenv("NEWSAPI_KEY", self.NEWSAPI_KEY))
+        object.__setattr__(self, "NEWSDATA_KEY", os.getenv("NEWSDATA_KEY", self.NEWSDATA_KEY))
+        object.__setattr__(self, "MEDIASTACK_KEY", os.getenv("MEDIASTACK_KEY", self.MEDIASTACK_KEY))
         object.__setattr__(self, "OPENWEATHER_KEY", os.getenv("OPENWEATHER_KEY", self.OPENWEATHER_KEY))
         object.__setattr__(self, "THESPORTSDB_KEY", os.getenv("THESPORTSDB_KEY", self.THESPORTSDB_KEY))
         object.__setattr__(self, "API_FOOTBALL_KEY", os.getenv("API_FOOTBALL_KEY", self.API_FOOTBALL_KEY))
+        object.__setattr__(self, "API_SPORTS_KEY", os.getenv("API_SPORTS_KEY", self.API_SPORTS_KEY))
 
         object.__setattr__(self, "TIMEZONE", os.getenv("TIMEZONE", self.TIMEZONE))
         object.__setattr__(self, "DAILY_RUN_AT", os.getenv("DAILY_RUN_AT", self.DAILY_RUN_AT))
@@ -85,6 +96,7 @@ class Settings:
         object.__setattr__(self, "AB_SEED", os.getenv("AB_SEED", self.AB_SEED))
 
         object.__setattr__(self, "THESPORTSDB_LEAGUE_IDS", os.getenv("THESPORTSDB_LEAGUE_IDS", self.THESPORTSDB_LEAGUE_IDS))
+        object.__setattr__(self, "API_SPORTS_LEAGUE_IDS", os.getenv("API_SPORTS_LEAGUE_IDS", self.API_SPORTS_LEAGUE_IDS))
 
         object.__setattr__(self, "ENABLE_CHARTS", os.getenv("ENABLE_CHARTS", "1" if self.ENABLE_CHARTS else "0") == "1")
         object.__setattr__(self, "ENABLE_POLL", os.getenv("ENABLE_POLL", "1" if self.ENABLE_POLL else "0") == "1")
@@ -94,6 +106,9 @@ class Settings:
         object.__setattr__(self, "DETAIL_LEVEL", os.getenv("DETAIL_LEVEL", self.DETAIL_LEVEL))
         object.__setattr__(self, "ENABLE_IMAGES", os.getenv("ENABLE_IMAGES", "1" if self.ENABLE_IMAGES else "0") == "1")
         object.__setattr__(self, "IMAGE_SIZE", os.getenv("IMAGE_SIZE", self.IMAGE_SIZE))
+        object.__setattr__(self, "STRUCTURED_GENERATION", os.getenv("STRUCTURED_GENERATION", "1" if self.STRUCTURED_GENERATION else "0") == "1")
+        object.__setattr__(self, "OPENAI_MODEL_LIGHT", os.getenv("OPENAI_MODEL_LIGHT", self.OPENAI_MODEL_LIGHT))
+        object.__setattr__(self, "ENABLE_MODERATION", os.getenv("ENABLE_MODERATION", "1" if self.ENABLE_MODERATION else "0") == "1")
         object.__setattr__(self, "AUTO_SCHEDULE", os.getenv("AUTO_SCHEDULE", "1" if self.AUTO_SCHEDULE else "0") == "1")
         object.__setattr__(self, "AUTO_BOOTSTRAP_DAYS", int(os.getenv("AUTO_BOOTSTRAP_DAYS", str(self.AUTO_BOOTSTRAP_DAYS))))
         object.__setattr__(self, "AUTO_BOOTSTRAP_TIMES", os.getenv("AUTO_BOOTSTRAP_TIMES", self.AUTO_BOOTSTRAP_TIMES))
@@ -104,6 +119,9 @@ class Settings:
 
     def leagues(self) -> list[str]:
         return [x.strip() for x in self.THESPORTSDB_LEAGUE_IDS.split(",") if x.strip()]
+
+    def leagues_api_sports(self) -> list[str]:
+        return [x.strip() for x in self.API_SPORTS_LEAGUE_IDS.split(",") if x.strip()]
 
     def run_times(self) -> list[str]:
         # If DAILY_RUN_TIMES defined, use those; else fallback to single DAILY_RUN_AT

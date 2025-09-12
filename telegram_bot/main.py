@@ -12,6 +12,7 @@ from telegram_bot.utils.logging import setup_logging
 from telegram_bot.handlers.admin import admin_router
 from telegram_bot.scheduler.scheduler import build_scheduler
 from telegram_bot.data.db import Database
+from telegram_bot.handlers.polls import polls_router
 
 
 async def main() -> None:
@@ -29,6 +30,7 @@ async def main() -> None:
     scheduler.start()
 
     dp.include_router(admin_router(settings, scheduler, db))
+    dp.include_router(polls_router(db))
 
     logging.getLogger(__name__).info(
         "Bot started. Timezone=%s Daily=%s Channel=%s",

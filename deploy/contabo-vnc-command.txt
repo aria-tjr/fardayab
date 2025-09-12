@@ -1,0 +1,3 @@
+# Copy and paste this single command into your VNC console:
+
+curl -o /tmp/deploy.sh http://38.242.247.182:8080/contabo-complete-deployment.sh && chmod +x /tmp/deploy.sh && /tmp/deploy.sh
