@@ -7,3 +7,5 @@ openai>=1.40.0
 pytrends>=4.9.2
 tenacity>=8.5.0
 orjson>=3.10.7
+websockets>=12.0
+jdatetime>=4.1.0

@@ -87,27 +87,139 @@ async def collect_all(settings: Settings) -> dict[str, Any]:
     trends_cmp_task = asyncio.create_task(_collect_with_retry(lambda: fetch_trending(settings.TRENDS_COMPARE_REGION, 10)))
     sports_task = asyncio.create_task(_collect_with_retry(lambda: fetch_sports(settings)))
     
-    # Advanced content collection
-    persian_task = asyncio.create_task(persian_enhancer.get_enhanced_persian_data())
-    free_persian_task = asyncio.create_task(free_persian_apis.get_enhanced_persian_content())
-    crypto_forex_content_task = asyncio.create_task(crypto_forex_content.get_all_crypto_forex_content())
+    # Advanced content collection with error handling
+    async def safe_persian_data():
+        try:
+            return await persian_enhancer.get_enhanced_persian_data()
+        except Exception as e:
+            log.warning(f"Persian data collection failed: {e}")
+            return {}
     
-    # Advanced analysis tasks
-    crypto_news_task = asyncio.create_task(news_aggregator.fetch_crypto_news())
-    forex_news_task = asyncio.create_task(news_aggregator.fetch_forex_news())
-    crypto_scanner_task = asyncio.create_task(market_scanner.scan_crypto_markets())
-    forex_scanner_task = asyncio.create_task(market_scanner.scan_forex_markets())
-    btc_analysis_task = asyncio.create_task(technical_analysis.get_comprehensive_analysis("BTC"))
-    eth_analysis_task = asyncio.create_task(technical_analysis.get_comprehensive_analysis("ETH"))
-    btc_predictions_task = asyncio.create_task(ai_predictor.get_comprehensive_predictions("BTC"))
-    eth_predictions_task = asyncio.create_task(ai_predictor.get_comprehensive_predictions("ETH"))
-    btc_signals_task = asyncio.create_task(trading_signals.generate_signals("BTC"))
-    eth_signals_task = asyncio.create_task(trading_signals.generate_signals("ETH"))
+    async def safe_free_persian_data():
+        try:
+            return await free_persian_apis.get_enhanced_persian_content()
+        except Exception as e:
+            log.warning(f"Free Persian data collection failed: {e}")
+            return {}
     
-    # Binance data collection
-    binance_market_summary_task = asyncio.create_task(binance_api.get_market_summary())
-    binance_crypto_prices_task = asyncio.create_task(binance_api.get_crypto_prices())
-    binance_forex_rates_task = asyncio.create_task(binance_api.get_forex_rates())
+    async def safe_crypto_forex_content():
+        try:
+            return await crypto_forex_content.get_all_crypto_forex_content()
+        except Exception as e:
+            log.warning(f"Crypto/Forex content collection failed: {e}")
+            return {}
+    
+    persian_task = asyncio.create_task(safe_persian_data())
+    free_persian_task = asyncio.create_task(safe_free_persian_data())
+    crypto_forex_content_task = asyncio.create_task(safe_crypto_forex_content())
+    
+    # Advanced analysis tasks with error handling
+    async def safe_crypto_news():
+        try:
+            return await news_aggregator.fetch_crypto_news()
+        except Exception as e:
+            log.warning(f"Crypto news collection failed: {e}")
+            return []
+    
+    async def safe_forex_news():
+        try:
+            return await news_aggregator.fetch_forex_news()
+        except Exception as e:
+            log.warning(f"Forex news collection failed: {e}")
+            return []
+    
+    async def safe_crypto_scanner():
+        try:
+            return await market_scanner.scan_crypto_markets()
+        except Exception as e:
+            log.warning(f"Crypto scanner failed: {e}")
+            return []
+    
+    async def safe_forex_scanner():
+        try:
+            return await market_scanner.scan_forex_markets()
+        except Exception as e:
+            log.warning(f"Forex scanner failed: {e}")
+            return []
+    
+    async def safe_btc_analysis():
+        try:
+            return await technical_analysis.get_comprehensive_analysis("BTC")
+        except Exception as e:
+            log.warning(f"BTC analysis failed: {e}")
+            return {}
+    
+    async def safe_eth_analysis():
+        try:
+            return await technical_analysis.get_comprehensive_analysis("ETH")
+        except Exception as e:
+            log.warning(f"ETH analysis failed: {e}")
+            return {}
+    
+    async def safe_btc_predictions():
+        try:
+            return await ai_predictor.get_comprehensive_predictions("BTC")
+        except Exception as e:
+            log.warning(f"BTC predictions failed: {e}")
+            return {}
+    
+    async def safe_eth_predictions():
+        try:
+            return await ai_predictor.get_comprehensive_predictions("ETH")
+        except Exception as e:
+            log.warning(f"ETH predictions failed: {e}")
+            return {}
+    
+    async def safe_btc_signals():
+        try:
+            return await trading_signals.generate_signals("BTC")
+        except Exception as e:
+            log.warning(f"BTC signals failed: {e}")
+            return []
+    
+    async def safe_eth_signals():
+        try:
+            return await trading_signals.generate_signals("ETH")
+        except Exception as e:
+            log.warning(f"ETH signals failed: {e}")
+            return []
+    
+    crypto_news_task = asyncio.create_task(safe_crypto_news())
+    forex_news_task = asyncio.create_task(safe_forex_news())
+    crypto_scanner_task = asyncio.create_task(safe_crypto_scanner())
+    forex_scanner_task = asyncio.create_task(safe_forex_scanner())
+    btc_analysis_task = asyncio.create_task(safe_btc_analysis())
+    eth_analysis_task = asyncio.create_task(safe_eth_analysis())
+    btc_predictions_task = asyncio.create_task(safe_btc_predictions())
+    eth_predictions_task = asyncio.create_task(safe_eth_predictions())
+    btc_signals_task = asyncio.create_task(safe_btc_signals())
+    eth_signals_task = asyncio.create_task(safe_eth_signals())
+    
+    # Binance data collection with error handling
+    async def safe_binance_market_summary():
+        try:
+            return await binance_api.get_market_summary()
+        except Exception as e:
+            log.warning(f"Binance market summary failed: {e}")
+            return {}
+    
+    async def safe_binance_crypto_prices():
+        try:
+            return await binance_api.get_crypto_prices()
+        except Exception as e:
+            log.warning(f"Binance crypto prices failed: {e}")
+            return {}
+    
+    async def safe_binance_forex_rates():
+        try:
+            return await binance_api.get_forex_rates()
+        except Exception as e:
+            log.warning(f"Binance forex rates failed: {e}")
+            return {}
+    
+    binance_market_summary_task = asyncio.create_task(safe_binance_market_summary())
+    binance_crypto_prices_task = asyncio.create_task(safe_binance_crypto_prices())
+    binance_forex_rates_task = asyncio.create_task(safe_binance_forex_rates())
 
     crypto = await crypto_task
     news = await news_task

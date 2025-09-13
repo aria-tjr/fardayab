@@ -6,9 +6,16 @@ import json
 from typing import Any, Dict, List, Optional, Callable
 from dataclasses import dataclass
 from datetime import datetime
-import websockets
 from telegram_bot.config.settings import Settings
 from telegram_bot.modules.binance_api import BinanceAPI, BinanceWebSocketManager
+
+# Optional WebSocket import
+try:
+    import websockets
+    WEBSOCKETS_AVAILABLE = True
+except ImportError:
+    WEBSOCKETS_AVAILABLE = False
+    websockets = None
 
 log = logging.getLogger(__name__)
 
@@ -43,6 +50,10 @@ class RealTimeStreamingManager:
         
     async def start_price_streaming(self, symbols: List[str], callback: Callable = None) -> bool:
         """Start real-time price streaming for multiple symbols"""
+        if not WEBSOCKETS_AVAILABLE:
+            log.warning("WebSockets not available, skipping price streaming")
+            return False
+            
         try:
             log.info(f"Starting price streaming for symbols: {symbols}")
             
@@ -91,6 +102,10 @@ class RealTimeStreamingManager:
     async def start_kline_streaming(self, symbols: List[str], interval: str = "1m", 
                                   callback: Callable = None) -> bool:
         """Start real-time kline/candlestick streaming"""
+        if not WEBSOCKETS_AVAILABLE:
+            log.warning("WebSockets not available, skipping kline streaming")
+            return False
+            
         try:
             log.info(f"Starting kline streaming for symbols: {symbols} with interval: {interval}")
             
@@ -140,6 +155,10 @@ class RealTimeStreamingManager:
     
     async def start_depth_streaming(self, symbols: List[str], callback: Callable = None) -> bool:
         """Start real-time order book depth streaming"""
+        if not WEBSOCKETS_AVAILABLE:
+            log.warning("WebSockets not available, skipping depth streaming")
+            return False
+            
         try:
             log.info(f"Starting depth streaming for symbols: {symbols}")
             

@@ -12,8 +12,15 @@ from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import httpx
-import websockets
 from telegram_bot.config.settings import Settings
+
+# Optional WebSocket import
+try:
+    import websockets
+    WEBSOCKETS_AVAILABLE = True
+except ImportError:
+    WEBSOCKETS_AVAILABLE = False
+    websockets = None
 
 log = logging.getLogger(__name__)
 
@@ -313,6 +320,10 @@ class BinanceAPI:
     async def start_websocket_stream(self, symbol: str, stream_type: str = "ticker", 
                                    callback=None) -> bool:
         """Start WebSocket stream for real-time data"""
+        if not WEBSOCKETS_AVAILABLE:
+            log.warning("WebSockets not available, skipping WebSocket stream")
+            return False
+            
         try:
             stream_name = f"{symbol.lower()}@ticker" if stream_type == "ticker" else f"{symbol.lower()}@kline_1m"
             ws_url = f"{self.ws_url}/{stream_name}"
