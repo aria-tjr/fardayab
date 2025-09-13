@@ -103,23 +103,23 @@ class FreePersianAPIs:
     
     async def get_persian_calendar_info(self) -> Dict[str, Any]:
         """Get Persian calendar information"""
+        # Persian month names
+        persian_months = [
+            'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+            'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
+        ]
+        
+        # Persian weekday names
+        persian_weekdays = [
+            'شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'
+        ]
+        
         try:
             from datetime import datetime
             import jdatetime
             
             now = datetime.now()
             persian_date = jdatetime.datetime.fromgregorian(datetime=now)
-            
-            # Persian month names
-            persian_months = [
-                'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
-                'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
-            ]
-            
-            # Persian weekday names
-            persian_weekdays = [
-                'شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'
-            ]
             
             return {
                 'persian_year': persian_date.year,
@@ -133,30 +133,68 @@ class FreePersianAPIs:
         except ImportError:
             log.warning("jdatetime not available, using fallback")
             # Calculate current Persian year manually (2025 = 1404)
-            current_gregorian_year = datetime.now().year
+            now = datetime.now()
+            current_gregorian_year = now.year
             persian_year = current_gregorian_year - 621  # 2025 - 621 = 1404
+            
+            # Calculate approximate Persian month and day
+            gregorian_month = now.month
+            gregorian_day = now.day
+            
+            # Rough conversion: Gregorian to Persian
+            if gregorian_month >= 3 and gregorian_month <= 5:
+                persian_month = gregorian_month - 2  # March = 1 (Farvardin)
+                persian_day = gregorian_day
+            elif gregorian_month >= 6 and gregorian_month <= 8:
+                persian_month = gregorian_month - 2  # June = 4 (Tir)
+                persian_day = gregorian_day
+            elif gregorian_month >= 9 and gregorian_month <= 11:
+                persian_month = gregorian_month - 2  # September = 7 (Mehr)
+                persian_day = gregorian_day
+            else:  # December, January, February
+                persian_month = gregorian_month + 10 if gregorian_month <= 2 else gregorian_month - 2
+                persian_day = gregorian_day
+            
+            # Ensure valid month
+            persian_month = max(1, min(12, persian_month))
+            
             return {
                 'persian_year': persian_year,
-                'persian_month': 1,
-                'persian_day': 1,
-                'persian_month_name': 'فروردین',
-                'persian_weekday': 'شنبه',
+                'persian_month': persian_month,
+                'persian_day': persian_day,
+                'persian_month_name': persian_months[persian_month - 1],
+                'persian_weekday': persian_weekdays[now.weekday()],
                 'is_leap_year': False,
-                'season': 'بهار'
+                'season': self._get_persian_season(persian_month)
             }
         except Exception as e:
             log.warning(f"Persian calendar failed: {e}")
-            # Fallback with correct year
-            current_gregorian_year = datetime.now().year
+            # Fallback with correct year and approximate month
+            now = datetime.now()
+            current_gregorian_year = now.year
             persian_year = current_gregorian_year - 621  # 2025 - 621 = 1404
+            
+            # Calculate approximate Persian month
+            gregorian_month = now.month
+            if gregorian_month >= 3 and gregorian_month <= 5:
+                persian_month = gregorian_month - 2
+            elif gregorian_month >= 6 and gregorian_month <= 8:
+                persian_month = gregorian_month - 2
+            elif gregorian_month >= 9 and gregorian_month <= 11:
+                persian_month = gregorian_month - 2
+            else:
+                persian_month = gregorian_month + 10 if gregorian_month <= 2 else gregorian_month - 2
+            
+            persian_month = max(1, min(12, persian_month))
+            
             return {
                 'persian_year': persian_year,
-                'persian_month': 1,
-                'persian_day': 1,
-                'persian_month_name': 'فروردین',
-                'persian_weekday': 'شنبه',
+                'persian_month': persian_month,
+                'persian_day': now.day,
+                'persian_month_name': persian_months[persian_month - 1],
+                'persian_weekday': persian_weekdays[now.weekday()],
                 'is_leap_year': False,
-                'season': 'بهار'
+                'season': self._get_persian_season(persian_month)
             }
     
     def _get_persian_season(self, month: int) -> str:

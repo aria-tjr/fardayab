@@ -13,25 +13,26 @@ from telegram_bot.modules.free_persian_apis import FreePersianAPIs
 from telegram_bot.modules.content_types import EnhancedContentManager
 
 
-def _get_fallback_data() -> dict[str, Any]:
-    """Provide fallback data when APIs fail"""
-    from datetime import datetime
-    current_year = datetime.now().year
+async def _retry_api_call(api_func, max_retries: int = 3, delay: float = 2.0):
+    """Retry API call with exponential backoff"""
+    import asyncio
+    import logging
     
-    return {
-        "crypto": {
-            "btc_line": f"بیت‌کوین: تحلیل {current_year} در حال انجام...",
-            "usd_line": f"دلار: نرخ فعلی {current_year} در حال بررسی...",
-        },
-        "news": [
-            {"title": f"اخبار اقتصادی {current_year}", "desc": "تحلیل‌های جدید در حال آماده‌سازی...", "source": "internal"}
-        ],
-        "trends": ["#اقتصاد", "#کریپتو", "#بازار", "#تحلیل", "#اخبار", f"#{current_year}"],
-        "trends_compare": {"region": "united_states", "values": ["#crypto", "#economy", "#markets", "#analysis", "#news"]},
-        "sports": [
-            {"home": "تیم A", "away": "تیم B", "time": "امروز", "prediction": "مسابقه جذاب پیش‌رو است"}
-        ],
-    }
+    log = logging.getLogger(__name__)
+    
+    for attempt in range(max_retries):
+        try:
+            result = await api_func()
+            if result:
+                return result
+        except Exception as e:
+            log.warning(f"API call attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                await asyncio.sleep(delay * (2 ** attempt))  # Exponential backoff
+            else:
+                log.error(f"All {max_retries} API attempts failed")
+    
+    return None
 
 async def collect_all(settings: Settings) -> dict[str, Any]:
     import logging
@@ -56,18 +57,19 @@ async def collect_all(settings: Settings) -> dict[str, Any]:
     enhanced_content = EnhancedContentManager(settings)
 
     # Run collectors concurrently with retry logic
-    crypto_task = asyncio.create_task(_collect_with_retry(fetch_crypto_and_fx, settings.HTTP_TIMEOUT))
+    crypto_task = asyncio.create_task(_collect_with_retry(lambda: fetch_crypto_and_fx(settings)))
     news_task = asyncio.create_task(_collect_with_retry(
-        fetch_combined_news,
-        settings.NEWSAPI_KEY,
-        settings.NEWSDATA_KEY,
-        settings.MEDIASTACK_KEY,
-        settings.NEWS_LANGUAGE,
-        settings.HTTP_TIMEOUT,
+        lambda: fetch_combined_news(
+            settings.NEWSAPI_KEY,
+            settings.NEWSDATA_KEY,
+            settings.MEDIASTACK_KEY,
+            settings.NEWS_LANGUAGE,
+            settings.HTTP_TIMEOUT,
+        )
     ))
-    trends_task = asyncio.create_task(_collect_with_retry(fetch_trending, "iran", 10))
-    trends_cmp_task = asyncio.create_task(_collect_with_retry(fetch_trending, settings.TRENDS_COMPARE_REGION, 10))
-    sports_task = asyncio.create_task(_collect_with_retry(fetch_sports, settings))
+    trends_task = asyncio.create_task(_collect_with_retry(lambda: fetch_trending("iran", 10)))
+    trends_cmp_task = asyncio.create_task(_collect_with_retry(lambda: fetch_trending(settings.TRENDS_COMPARE_REGION, 10)))
+    sports_task = asyncio.create_task(_collect_with_retry(lambda: fetch_sports(settings)))
     
     # Persian content collection
     persian_task = asyncio.create_task(persian_enhancer.get_enhanced_persian_data())
@@ -90,20 +92,33 @@ async def collect_all(settings: Settings) -> dict[str, Any]:
     if settings.ENABLE_REAL_TIME_DATA:
         log.info("Real-time data collection enabled - using latest available data")
 
-    # Use fallback data if all APIs failed
-    if not any([crypto, news, trends, sports, persian_data.get('enhanced', False)]):
-        log.warning("All APIs failed, using fallback data")
-        return _get_fallback_data()
-
-    # Use fallback for individual failed APIs
+    # Retry failed APIs with exponential backoff
     if not crypto:
-        crypto = _get_fallback_data()["crypto"]
+        log.info("Retrying crypto API with backoff...")
+        crypto = await _retry_api_call(lambda: fetch_crypto_and_fx(settings))
+    
     if not news:
-        news = _get_fallback_data()["news"]
+        log.info("Retrying news API with backoff...")
+        news = await _retry_api_call(lambda: fetch_combined_news(
+            settings.NEWSAPI_KEY, 
+            settings.NEWSDATA_KEY, 
+            settings.MEDIASTACK_KEY, 
+            settings.NEWS_LANGUAGE, 
+            settings.HTTP_TIMEOUT
+        ))
+    
     if not trends:
-        trends = _get_fallback_data()["trends"]
+        log.info("Retrying trends API with backoff...")
+        trends = await _retry_api_call(lambda: fetch_trending(settings))
+    
     if not sports:
-        sports = _get_fallback_data()["sports"]
+        log.info("Retrying sports API with backoff...")
+        sports = await _retry_api_call(lambda: fetch_sports(settings))
+
+    # If all APIs still fail after retries, raise an error instead of using fallback
+    if not any([crypto, news, trends, sports, persian_data.get('enhanced', False)]):
+        log.error("All APIs failed after retries - no data available")
+        raise Exception("Unable to fetch real data from any API source")
 
     # Enhance news with Persian content if available
     if persian_data.get('enhanced', False) and persian_data.get('persian_news'):
@@ -119,7 +134,7 @@ async def collect_all(settings: Settings) -> dict[str, Any]:
         "crypto": crypto,
         "news": news,
         "trends": trends,
-        "trends_compare": {"region": settings.TRENDS_COMPARE_REGION, "values": trends_cmp or _get_fallback_data()["trends_compare"]["values"]},
+        "trends_compare": {"region": settings.TRENDS_COMPARE_REGION, "values": trends_cmp or []},
         "sports": sports,
         "persian_enhanced": persian_data.get('enhanced', False),
         "iranian_financial": persian_data.get('iranian_financial', {}),

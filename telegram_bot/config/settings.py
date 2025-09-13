@@ -50,6 +50,12 @@ class Settings:
     ISNA_API_KEY: str = ""
     MEHR_API_KEY: str = ""
     FARS_API_KEY: str = ""
+    
+    # Content APIs
+    TMDB_API_KEY: str = ""
+    LASTFM_API_KEY: str = ""
+    GOODREADS_API_KEY: str = ""
+    WIKIPEDIA_API_KEY: str = ""
 
     # A/B testing
     AB_SEED: str = "tg-content-factory"

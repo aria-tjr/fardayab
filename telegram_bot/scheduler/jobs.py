@@ -82,34 +82,8 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
         text = variants.get(variant) or ""
 
         if not text.strip():
-            # Fallback to deterministic formatter
-            insights = [
-                "💡 جالب است بدانید: بیش از ۶۰٪ معاملات بیت‌کوین توسط ۱٪ آدرس‌ها انجام می‌شود.",
-                "💡 دانستنی: بازارها در بلندمدت به سمت میانگین بازمی‌گردند؛ هیجان‌های کوتاه‌مدت پایدار نیستند.",
-                "💡 نکته: تنوع‌بخشی ریسک را کاهش می‌دهد؛ هیچ‌وقت همه تخم‌مرغ‌ها در یک سبد!",
-            ]
-            idx = today.toordinal() % len(insights)
-            if settings.POST_MODE == 'split':
-                from telegram_bot.utils.formatting import (
-                    format_economy_post, format_sports_post, format_trends_post, format_insight_post
-                )
-                if topic == 'economy':
-                    text = format_economy_post(data.get("crypto"), data.get("sentiment"))
-                elif topic == 'sports':
-                    text = format_sports_post(data.get("sports"))
-                elif topic == 'trends':
-                    text = format_trends_post(data.get("trends"), data.get("trends_compare"))
-                else:
-                    text = format_insight_post(insights[idx])
-            else:
-                text = format_channel_post(
-                    economic=data.get("crypto"),
-                    sports=data.get("sports"),
-                    trends=data.get("trends"),
-                    header_note="⚠️ تولید خودکار با فرمت رزرو (بدون OpenAI)",
-                    sentiment=data.get("sentiment"),
-                    insight=insights[idx],
-                )
+            # If no content is generated, raise an error instead of using fallback
+            raise Exception("Unable to generate content - no real data available")
 
         # Prevent duplicate content within last few days
         import hashlib
@@ -140,11 +114,8 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
                 text = text2
                 content_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()
             else:
-                # Use fallback content
-                if settings.POST_MODE == 'split' and topic == 'insight':
-                    text = "**💡 نکته طلایی روز** ✨\n─" * 20 + "\n🎯 همیشه قبل از سرمایه‌گذاری، ریسک خود را ارزیابی کنید. تنوع‌بخشی کلید موفقیت است! 💰\n\n#سرمایه‌گذاری #ریسک #تنوع‌بخشی #طلایی"
-                else:
-                    text = "**📊 تحلیل روز** 📈\n─" * 20 + "\n🔄 داده‌های جدید در حال پردازش است. به‌زودی تحلیل کامل ارائه خواهد شد. ⏳\n\n#به‌زودی #تحلیل #داده"
+                # If no valid content available, raise error
+                raise Exception("No valid content available after filtering")
         
         # Optional sources, disclaimer, normalization and safe clipping
         if settings.INCLUDE_SOURCES:
@@ -283,12 +254,19 @@ async def intelligent_daily_job(bot: Bot, settings: Settings, db: Database, sche
             data["yesterday"] = {"day": yday.isoformat(), "snapshot": prev_snapshot}
         
         # Generate intelligent posting plan
-        posting_plan = await intelligent_scheduler.generate_intelligent_posting_plan(data)
-        
-        log.info(f"📋 Generated posting plan: {posting_plan['total_posts']} posts, strategy: {posting_plan['strategy']}")
+        try:
+            posting_plan = await intelligent_scheduler.generate_intelligent_posting_plan(data)
+            log.info(f"📋 Generated posting plan: {posting_plan['total_posts']} posts, strategy: {posting_plan['strategy']}")
+        except Exception as e:
+            log.error(f"Failed to generate posting plan: {e}")
+            raise Exception(f"Unable to generate intelligent posting plan: {e}")
         
         # Execute the posting plan
-        execution_results = await intelligent_scheduler.execute_intelligent_posting_plan(posting_plan, data)
+        try:
+            execution_results = await intelligent_scheduler.execute_intelligent_posting_plan(posting_plan, data)
+        except Exception as e:
+            log.error(f"Failed to execute posting plan: {e}")
+            raise Exception(f"Unable to execute posting plan: {e}")
         
         # Send immediate posts (for testing/demonstration)
         await _execute_immediate_posts(bot, settings, db, posting_plan, data)
@@ -443,7 +421,11 @@ async def _generate_intelligent_post_content(post_plan: dict, data: dict, settin
         elif content_type == "trends" and data.get("trends"):
             base_content = data["trends"]
         elif content_type == "insight":
-            base_content = "💡 نکته طلایی روز: همیشه قبل از تصمیم‌گیری، تمام گزینه‌ها را بررسی کنید."
+            # Try to get real insight from data
+            if data.get("sentiment") and data["sentiment"].get("analysis"):
+                base_content = f"💡 تحلیل بازار: {data['sentiment']['analysis']}"
+            else:
+                raise Exception("No real insight data available")
         elif content_type == "culture" and data.get("culture"):
             base_content = data["culture"]
         elif content_type == "technology" and data.get("technology"):
@@ -455,7 +437,7 @@ async def _generate_intelligent_post_content(post_plan: dict, data: dict, settin
         elif content_type == "travel" and data.get("travel"):
             base_content = data["travel"]
         else:
-            base_content = f"محتوای {content_type} برای زمان {post_plan['scheduled_time'].strftime('%H:%M')}"
+            raise Exception(f"No real data available for content type: {content_type}")
         
         # Apply formatting
         if post_plan.get("formatting_style") == "bold_headers":

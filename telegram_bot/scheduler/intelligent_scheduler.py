@@ -492,7 +492,7 @@ class IntelligentPostingScheduler:
             
         except Exception as e:
             log.error(f"Failed to generate posting plan: {e}")
-            return self._get_fallback_posting_plan()
+            raise Exception(f"Unable to generate intelligent posting plan: {e}")
     
     async def _analyze_content_for_posting(self, content_data: dict) -> dict:
         """
@@ -570,54 +570,6 @@ class IntelligentPostingScheduler:
         
         return types[post_index % len(types)]
     
-    def _get_fallback_posting_plan(self) -> dict:
-        """
-        Get a fallback posting plan when intelligent analysis fails
-        """
-        return {
-            "total_posts": 4,
-            "posts": [
-                {
-                    "post_id": 1,
-                    "scheduled_time": datetime.now().replace(hour=8, minute=0, second=0, microsecond=0),
-                    "content_type": "economy",
-                    "priority": "high",
-                    "engagement_focus": "peak",
-                    "emoji_usage": "high",
-                    "formatting_style": "bold_headers"
-                },
-                {
-                    "post_id": 2,
-                    "scheduled_time": datetime.now().replace(hour=14, minute=0, second=0, microsecond=0),
-                    "content_type": "sports",
-                    "priority": "high",
-                    "engagement_focus": "peak",
-                    "emoji_usage": "high",
-                    "formatting_style": "bold_headers"
-                },
-                {
-                    "post_id": 3,
-                    "scheduled_time": datetime.now().replace(hour=18, minute=0, second=0, microsecond=0),
-                    "content_type": "trends",
-                    "priority": "medium",
-                    "engagement_focus": "sustained",
-                    "emoji_usage": "moderate",
-                    "formatting_style": "standard"
-                },
-                {
-                    "post_id": 4,
-                    "scheduled_time": datetime.now().replace(hour=21, minute=0, second=0, microsecond=0),
-                    "content_type": "insight",
-                    "priority": "medium",
-                    "engagement_focus": "sustained",
-                    "emoji_usage": "moderate",
-                    "formatting_style": "standard"
-                }
-            ],
-            "strategy": "fallback_distribution",
-            "engagement_prediction": 0.65,
-            "content_diversity": 0.6
-        }
     
     async def execute_intelligent_posting_plan(self, posting_plan: dict, content_data: dict) -> dict:
         """
