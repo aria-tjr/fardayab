@@ -51,7 +51,7 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
             return
         await msg.answer(
             "سلام! بات مدیریت کانال آماده است.\n"
-            "فرمان‌ها: /run, /status, /settime HH:MM, /settz Area/City"
+            "فرمان‌ها: /run, /status, /settime HH:MM, /settz Area/City, /postlast3days"
         )
 
     @router.message(Command("run"))
@@ -363,6 +363,129 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
         text = normalize_persian(clip_telegram_text(text))
         await msg.bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=text, disable_web_page_preview=True)
         await msg.answer("منتشر شد.")
+
+    @router.message(Command("postlast3days"))
+    async def post_last_3_days(msg: Message):
+        if not is_admin(msg):
+            return
+        await msg.answer("شروع انتشار 3 روز گذشته…")
+
+        today = datetime.now(ZoneInfo(settings.TIMEZONE)).date()
+        posted = 0
+        last_message_id = None
+        
+        # Helper to finalize and send one text
+        async def _send_one(day_date, data_obj, text_body):
+            nonlocal posted, last_message_id
+            from telegram_bot.utils.formatting import format_sources
+            if settings.INCLUDE_SOURCES:
+                srcs = format_sources((data_obj or {}).get("news"), settings.SOURCES_COUNT)
+                if srcs:
+                    text_body = text_body.rstrip() + "\n" + srcs
+            if settings.INCLUDE_DISCLAIMER and settings.DISCLAIMER_TEXT:
+                text_body = (text_body.rstrip() + "\n\n" + settings.DISCLAIMER_TEXT).strip()
+            text_body = normalize_persian(clip_telegram_text(text_body))
+            try:
+                sent = await msg.bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=text_body, disable_web_page_preview=True)
+                last_message_id = sent.message_id
+                ch = hashlib.sha256(text_body.encode('utf-8')).hexdigest()
+                ts_seed = int(datetime.combine(day_date, time(12, 0), tzinfo=ZoneInfo(settings.TIMEZONE)).timestamp())
+                await db.record_run(ts_seed, "postlast3days", "multi", sent.message_id, None, topic="postlast3days", content_hash=ch)
+                posted += 1
+                await asyncio.sleep(1.0)  # Shorter delay for faster posting
+            except Exception as e:
+                await msg.answer(f"خطا در ارسال پست: {e}")
+
+        # Process last 3 days
+        for i in range(3, 0, -1):
+            day = today - timedelta(days=i)
+            snap = await db.get_snapshot(day.isoformat())
+            if not snap:
+                await msg.answer(f"داده‌ای برای {day.isoformat()} یافت نشد.")
+                continue
+                
+            data = (snap.get("data") or {})
+            
+            # Generate content for this day using current settings
+            try:
+                # Collect fresh data for this day's context
+                fresh_data = await collect_all(settings)
+                fresh_data["sentiment"] = await analyze_news_sentiment(settings, fresh_data.get("news") or [])
+                
+                # Generate posts based on current POST_MODE
+                if settings.POST_MODE == 'split':
+                    # Generate one post per topic for this day
+                    seq = settings.topics()
+                    for topic in seq:
+                        try:
+                            if topic in {"economy", "sports", "trends", "insight"}:
+                                structured = await generate_topic_structured(settings, fresh_data, topic)
+                                if structured and isinstance(structured, dict) and structured.get("body"):
+                                    text = render_topic(structured)
+                                else:
+                                    vars = await generate_topic_variants(settings, fresh_data, topic, detail_level=settings.DETAIL_LEVEL)
+                                    text = vars.get('A') or ""
+                                
+                                if not text.strip():
+                                    # Fallback formatting
+                                    from telegram_bot.utils.formatting import (
+                                        format_economy_post, format_sports_post, format_trends_post, format_insight_post
+                                    )
+                                    if topic == 'economy':
+                                        text = format_economy_post(fresh_data.get("crypto"), fresh_data.get("sentiment"))
+                                    elif topic == 'sports':
+                                        text = format_sports_post(fresh_data.get("sports"))
+                                    elif topic == 'trends':
+                                        text = format_trends_post(fresh_data.get("trends"), fresh_data.get("trends_compare"))
+                                    else:
+                                        text = format_insight_post(None)
+                                
+                                if text.strip():
+                                    await _send_one(day, fresh_data, text)
+                        except Exception as e:
+                            await msg.answer(f"خطا در تولید پست {topic} برای {day.isoformat()}: {e}")
+                else:
+                    # Generate combined post
+                    try:
+                        structured = await generate_combined_structured(settings, fresh_data)
+                        if structured and isinstance(structured, dict):
+                            text = render_combined(structured)
+                        else:
+                            vars = await generate_post_variants(settings, fresh_data)
+                            text = vars.get('A') or ""
+                        
+                        if not text.strip():
+                            text = format_channel_post(
+                                economic=fresh_data.get("crypto"),
+                                sports=fresh_data.get("sports"),
+                                trends=fresh_data.get("trends"),
+                                header_note=f"📅 {day.strftime('%Y-%m-%d')} — انتشار آرشیو",
+                                sentiment=fresh_data.get("sentiment"),
+                            )
+                        
+                        if text.strip():
+                            await _send_one(day, fresh_data, text)
+                    except Exception as e:
+                        await msg.answer(f"خطا در تولید پست ترکیبی برای {day.isoformat()}: {e}")
+                        
+            except Exception as e:
+                await msg.answer(f"خطا در پردازش {day.isoformat()}: {e}")
+
+        # Pin the last message if enabled
+        try:
+            if settings.PIN_POSTS and last_message_id:
+                prev = await db.get_setting("PINNED_MSG_ID")
+                if prev:
+                    try:
+                        await msg.bot.unpin_chat_message(chat_id=settings.TELEGRAM_CHANNEL_ID, message_id=int(prev))
+                    except Exception:
+                        pass
+                await msg.bot.pin_chat_message(chat_id=settings.TELEGRAM_CHANNEL_ID, message_id=last_message_id)
+                await db.set_setting("PINNED_MSG_ID", str(last_message_id))
+        except Exception:
+            pass
+            
+        await msg.answer(f"انجام شد. {posted} پست از 3 روز گذشته منتشر شد.")
 
     @router.message(Command("seed"))
     async def seed(msg: Message):
