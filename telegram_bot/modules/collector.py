@@ -15,15 +15,18 @@ from telegram_bot.modules.content_types import EnhancedContentManager
 
 def _get_fallback_data() -> dict[str, Any]:
     """Provide fallback data when APIs fail"""
+    from datetime import datetime
+    current_year = datetime.now().year
+    
     return {
         "crypto": {
-            "btc_line": "بیت‌کوین: تحلیل در حال انجام...",
-            "usd_line": "دلار: نرخ فعلی در حال بررسی...",
+            "btc_line": f"بیت‌کوین: تحلیل {current_year} در حال انجام...",
+            "usd_line": f"دلار: نرخ فعلی {current_year} در حال بررسی...",
         },
         "news": [
-            {"title": "اخبار اقتصادی روز", "desc": "تحلیل‌های جدید در حال آماده‌سازی...", "source": "internal"}
+            {"title": f"اخبار اقتصادی {current_year}", "desc": "تحلیل‌های جدید در حال آماده‌سازی...", "source": "internal"}
         ],
-        "trends": ["#اقتصاد", "#کریپتو", "#بازار", "#تحلیل", "#اخبار"],
+        "trends": ["#اقتصاد", "#کریپتو", "#بازار", "#تحلیل", "#اخبار", f"#{current_year}"],
         "trends_compare": {"region": "united_states", "values": ["#crypto", "#economy", "#markets", "#analysis", "#news"]},
         "sports": [
             {"home": "تیم A", "away": "تیم B", "time": "امروز", "prediction": "مسابقه جذاب پیش‌رو است"}

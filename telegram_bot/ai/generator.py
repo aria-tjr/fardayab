@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+from datetime import datetime
 from typing import Any
 
 from openai import OpenAI
@@ -26,7 +27,7 @@ SYSTEM_PROMPT_BASE = (
     "IMPORTANT: You have access to real-time data and latest information. "
     "Generate content based on current market knowledge and latest trends. "
     "Never mention that data is empty or unavailable. Never reference past years like 2024. "
-    "Always use current year 2025. Focus on actionable insights and current market conditions. "
+    f"Always use current year {datetime.now().year}. Focus on actionable insights and current market conditions. "
     "Style: Engaging, storytelling (not dry), VERY emoji-rich (use 2-3 emojis per line), bold headers with **text**, 3–6 smart hashtags. "
     "Tone: Educational/informational, not investment advice. Keep under ~300 words total. "
     "Include engagement elements like polls or discussion questions."
@@ -117,7 +118,7 @@ TOPIC_SYSTEMS = {
         "IMPORTANT: You have access to real-time data and latest market information. "
         "Generate content based on current market knowledge and latest trends. "
         "Never mention that data is empty or unavailable. Never reference past years like 2024. "
-        "Always use current year 2025. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
+        f"Always use current year {datetime.now().year}. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
         "Tone: Educational/informational, not investment advice. Include discussion questions about market predictions."
     ),
     "sports": (
@@ -127,7 +128,7 @@ TOPIC_SYSTEMS = {
         "IMPORTANT: You have access to real-time sports data and latest information. "
         "Generate content based on current sports knowledge and latest trends. "
         "Never mention that data is empty or unavailable. Never reference past years like 2024. "
-        "Always use current year 2025. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
+        f"Always use current year {datetime.now().year}. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
         "Include discussion questions about match predictions or favorite teams."
     ),
     "trends": (
@@ -137,7 +138,7 @@ TOPIC_SYSTEMS = {
         "IMPORTANT: You have access to real-time trends data and latest information. "
         "Generate content based on current trends knowledge and latest developments. "
         "Never mention that data is empty or unavailable. Never reference past years like 2024. "
-        "Always use current year 2025. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
+        f"Always use current year {datetime.now().year}. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
         "Include hashtags that users can touch/copy and search about."
     ),
     "insight": (
@@ -148,7 +149,7 @@ TOPIC_SYSTEMS = {
         "IMPORTANT: You have access to real-time market data and latest information. "
         "Generate content based on current market knowledge and latest trends. "
         "Never mention that data is empty or unavailable. Never reference past years like 2024. "
-        "Always use current year 2025. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
+        f"Always use current year {datetime.now().year}. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
         "Keep it concise, relevant to today's data, include relevant hashtags, and add a call-to-action for user engagement."
     ),
     "culture": (
@@ -158,7 +159,7 @@ TOPIC_SYSTEMS = {
         "IMPORTANT: You have access to real-time cultural data and latest information. "
         "Generate content based on current cultural knowledge and latest trends. "
         "Never mention that data is empty or unavailable. Never reference past years like 2024. "
-        "Always use current year 2025. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
+        f"Always use current year {datetime.now().year}. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
         "Include discussion questions about cultural preferences and artistic tastes."
     ),
     "technology": (
@@ -168,7 +169,7 @@ TOPIC_SYSTEMS = {
         "IMPORTANT: You have access to real-time tech data and latest information. "
         "Generate content based on current technology knowledge and latest trends. "
         "Never mention that data is empty or unavailable. Never reference past years like 2024. "
-        "Always use current year 2025. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
+        f"Always use current year {datetime.now().year}. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
         "Include discussion questions about technology adoption and digital trends."
     ),
     "literature": (
@@ -178,7 +179,7 @@ TOPIC_SYSTEMS = {
         "IMPORTANT: You have access to real-time literary data and latest information. "
         "Generate content based on current literary knowledge and latest trends. "
         "Never mention that data is empty or unavailable. Never reference past years like 2024. "
-        "Always use current year 2025. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
+        f"Always use current year {datetime.now().year}. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
         "Include discussion questions about literature preferences and poetic interpretations."
     ),
     "lifestyle": (
@@ -188,7 +189,7 @@ TOPIC_SYSTEMS = {
         "IMPORTANT: You have access to real-time health data and latest information. "
         "Generate content based on current health knowledge and latest trends. "
         "Never mention that data is empty or unavailable. Never reference past years like 2024. "
-        "Always use current year 2025. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
+        f"Always use current year {datetime.now().year}. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
         "Include discussion questions about lifestyle choices and health habits."
     ),
     "travel": (
@@ -198,7 +199,7 @@ TOPIC_SYSTEMS = {
         "IMPORTANT: You have access to real-time travel data and latest information. "
         "Generate content based on current travel knowledge and latest trends. "
         "Never mention that data is empty or unavailable. Never reference past years like 2024. "
-        "Always use current year 2025. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
+        f"Always use current year {datetime.now().year}. Use LOTS of emojis (2-3 per line), bold headers with **text**, and engaging tone. "
         "Include discussion questions about travel preferences and destination experiences."
     ),
 }

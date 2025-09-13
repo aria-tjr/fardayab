@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -22,6 +23,7 @@ from telegram_bot.modules.crypto import fetch_btc_market_chart
 from telegram_bot.modules.charts import btc_chart_url
 from telegram_bot.ai.images import generate_image_url
 from telegram_bot.utils import mcache
+from telegram_bot.scheduler.intelligent_scheduler import IntelligentPostingScheduler
 
 
 log = logging.getLogger(__name__)
@@ -249,3 +251,274 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
             chat_id=settings.ADMIN_USER_ID,
             text=f"❌ اجرای روزانه با خطا مواجه شد:\n{e}",
         )
+
+
+async def intelligent_daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None) -> None:
+    """
+    Intelligent daily job that creates multiple well-distributed posts throughout the day
+    """
+    ts = int(datetime.now().timestamp())
+    try:
+        log.info("🚀 Starting intelligent daily job with multi-posting...")
+        
+        # Initialize intelligent scheduler
+        intelligent_scheduler = IntelligentPostingScheduler(settings)
+        
+        # Collect all data
+        tz = await db.get_setting("TIMEZONE", settings.TIMEZONE) or settings.TIMEZONE
+        cache_key = "collect_all_intelligent"
+        cached = mcache.get(cache_key)
+        if cached is None:
+            data = await collect_all(settings)
+            mcache.set(cache_key, data, ttl=900)  # 15 minutes
+        else:
+            data = cached
+        
+        # Enrich with sentiment and yesterday snapshot
+        data["sentiment"] = await analyze_news_sentiment(settings, data.get("news") or [])
+        today = now_tz(tz).date()
+        yday = type(today).fromordinal(today.toordinal() - 1)
+        prev_snapshot = await db.get_snapshot(yday.isoformat())
+        if prev_snapshot:
+            data["yesterday"] = {"day": yday.isoformat(), "snapshot": prev_snapshot}
+        
+        # Generate intelligent posting plan
+        posting_plan = await intelligent_scheduler.generate_intelligent_posting_plan(data)
+        
+        log.info(f"📋 Generated posting plan: {posting_plan['total_posts']} posts, strategy: {posting_plan['strategy']}")
+        
+        # Execute the posting plan
+        execution_results = await intelligent_scheduler.execute_intelligent_posting_plan(posting_plan, data)
+        
+        # Send immediate posts (for testing/demonstration)
+        await _execute_immediate_posts(bot, settings, db, posting_plan, data)
+        
+        # Schedule future posts
+        await _schedule_future_posts(bot, settings, db, scheduler, posting_plan, data)
+        
+        # Record execution
+        await db.record_run(ts, "intelligent_ok", "multi", None, None, topic="intelligent_multi", content_hash=f"intelligent_{ts}")
+        
+        # Send admin report
+        await _send_intelligent_admin_report(bot, settings, posting_plan, execution_results)
+        
+        log.info("✅ Intelligent daily job completed successfully")
+        
+    except Exception as e:
+        log.exception("intelligent_daily_job failed")
+        await db.record_run(ts, "intelligent_error", None, None, str(e))
+        await bot.send_message(
+            chat_id=settings.ADMIN_USER_ID,
+            text=f"❌ اجرای هوشمند روزانه با خطا مواجه شد:\n{e}",
+        )
+
+
+async def _execute_immediate_posts(bot: Bot, settings: Settings, db: Database, posting_plan: dict, data: dict) -> None:
+    """
+    Execute immediate posts (within the next hour)
+    """
+    try:
+        now = datetime.now()
+        immediate_posts = [
+            post for post in posting_plan["posts"] 
+            if (post["scheduled_time"] - now).total_seconds() < 3600  # Next hour
+        ]
+        
+        for post_plan in immediate_posts:
+            try:
+                # Generate content
+                content = await _generate_intelligent_post_content(post_plan, data, settings)
+                
+                if content:
+                    # Send the post
+                    msg = await bot.send_message(
+                        chat_id=settings.TELEGRAM_CHANNEL_ID,
+                        text=content,
+                        disable_web_page_preview=True,
+                    )
+                    
+                    log.info(f"✅ Sent immediate post {post_plan['post_id']} ({post_plan['content_type']})")
+                    
+                    # Record the post
+                    content_hash = hashlib.sha256(content.encode('utf-8')).hexdigest()
+                    await db.record_run(
+                        int(now.timestamp()), 
+                        "immediate_ok", 
+                        post_plan['content_type'], 
+                        msg.message_id, 
+                        None, 
+                        topic=post_plan['content_type'], 
+                        content_hash=content_hash
+                    )
+                    
+            except Exception as e:
+                log.error(f"❌ Failed to send immediate post {post_plan['post_id']}: {e}")
+                
+    except Exception as e:
+        log.error(f"Failed to execute immediate posts: {e}")
+
+
+async def _schedule_future_posts(bot: Bot, settings: Settings, db: Database, scheduler, posting_plan: dict, data: dict) -> None:
+    """
+    Schedule future posts using the scheduler
+    """
+    try:
+        if not scheduler:
+            log.warning("No scheduler available for future posts")
+            return
+            
+        now = datetime.now()
+        future_posts = [
+            post for post in posting_plan["posts"] 
+            if (post["scheduled_time"] - now).total_seconds() >= 3600  # After next hour
+        ]
+        
+        for post_plan in future_posts:
+            try:
+                # Schedule the post
+                job_id = f"intelligent_post_{post_plan['post_id']}_{int(now.timestamp())}"
+                
+                scheduler.add_job(
+                    _send_scheduled_post,
+                    'date',
+                    run_date=post_plan["scheduled_time"],
+                    args=[bot, settings, db, post_plan, data],
+                    id=job_id,
+                    replace_existing=True
+                )
+                
+                log.info(f"📅 Scheduled post {post_plan['post_id']} for {post_plan['scheduled_time']}")
+                
+            except Exception as e:
+                log.error(f"❌ Failed to schedule post {post_plan['post_id']}: {e}")
+                
+    except Exception as e:
+        log.error(f"Failed to schedule future posts: {e}")
+
+
+async def _send_scheduled_post(bot: Bot, settings: Settings, db: Database, post_plan: dict, data: dict) -> None:
+    """
+    Send a scheduled post
+    """
+    try:
+        content = await _generate_intelligent_post_content(post_plan, data, settings)
+        
+        if content:
+            msg = await bot.send_message(
+                chat_id=settings.TELEGRAM_CHANNEL_ID,
+                text=content,
+                disable_web_page_preview=True,
+            )
+            
+            log.info(f"✅ Sent scheduled post {post_plan['post_id']} ({post_plan['content_type']})")
+            
+            # Record the post
+            content_hash = hashlib.sha256(content.encode('utf-8')).hexdigest()
+            await db.record_run(
+                int(datetime.now().timestamp()), 
+                "scheduled_ok", 
+                post_plan['content_type'], 
+                msg.message_id, 
+                None, 
+                topic=post_plan['content_type'], 
+                content_hash=content_hash
+            )
+            
+    except Exception as e:
+        log.error(f"❌ Failed to send scheduled post {post_plan['post_id']}: {e}")
+
+
+async def _generate_intelligent_post_content(post_plan: dict, data: dict, settings: Settings) -> str:
+    """
+    Generate content for an intelligent post
+    """
+    try:
+        content_type = post_plan["content_type"]
+        
+        # Get base content based on type
+        if content_type == "economy" and data.get("crypto"):
+            base_content = data["crypto"]
+        elif content_type == "sports" and data.get("sports"):
+            base_content = data["sports"]
+        elif content_type == "trends" and data.get("trends"):
+            base_content = data["trends"]
+        elif content_type == "insight":
+            base_content = "💡 نکته طلایی روز: همیشه قبل از تصمیم‌گیری، تمام گزینه‌ها را بررسی کنید."
+        elif content_type == "culture" and data.get("culture"):
+            base_content = data["culture"]
+        elif content_type == "technology" and data.get("technology"):
+            base_content = data["technology"]
+        elif content_type == "literature" and data.get("literature"):
+            base_content = data["literature"]
+        elif content_type == "lifestyle" and data.get("lifestyle"):
+            base_content = data["lifestyle"]
+        elif content_type == "travel" and data.get("travel"):
+            base_content = data["travel"]
+        else:
+            base_content = f"محتوای {content_type} برای زمان {post_plan['scheduled_time'].strftime('%H:%M')}"
+        
+        # Apply formatting
+        if post_plan.get("formatting_style") == "bold_headers":
+            formatted_content = f"**{content_type.upper()}**\n\n{base_content}"
+        else:
+            formatted_content = base_content
+        
+        # Add emojis
+        if post_plan.get("emoji_usage") == "high":
+            emoji_map = {
+                "economy": "💰📈",
+                "sports": "⚽🏆",
+                "trends": "🔥📊",
+                "insight": "💡🎯",
+                "culture": "🎭📚",
+                "technology": "🚀💻",
+                "literature": "📖✍️",
+                "lifestyle": "🌟💫",
+                "travel": "✈️🌍"
+            }
+            emoji = emoji_map.get(content_type, "📝")
+            formatted_content = f"{emoji} {formatted_content}"
+        
+        # Add engagement elements
+        if post_plan.get("engagement_focus") == "peak":
+            formatted_content += "\n\n#فردایاب #هوشمند #بهترین_محتوا"
+        
+        return formatted_content
+        
+    except Exception as e:
+        log.error(f"Failed to generate intelligent post content: {e}")
+        return None
+
+
+async def _send_intelligent_admin_report(bot: Bot, settings: Settings, posting_plan: dict, execution_results: dict) -> None:
+    """
+    Send admin report for intelligent posting
+    """
+    try:
+        report = f"""🤖 **گزارش هوشمند روزانه**
+
+📊 **آمار کلی:**
+• تعداد پست‌ها: {posting_plan['total_posts']}
+• استراتژی: {posting_plan['strategy']}
+• پیش‌بینی تعامل: {posting_plan['engagement_prediction']:.1%}
+• تنوع محتوا: {posting_plan['content_diversity']:.1%}
+
+✅ **نتایج اجرا:**
+• پست‌های موفق: {execution_results['successful_posts']}
+• پست‌های ناموفق: {execution_results['failed_posts']}
+• زمان اجرا: {execution_results['execution_time'].strftime('%H:%M:%S')}
+
+📅 **برنامه پست‌ها:**
+"""
+        
+        for post in posting_plan["posts"]:
+            status = "✅" if post["post_id"] <= execution_results['successful_posts'] else "⏳"
+            report += f"• {status} پست {post['post_id']}: {post['content_type']} در {post['scheduled_time'].strftime('%H:%M')}\n"
+        
+        await bot.send_message(
+            chat_id=settings.ADMIN_USER_ID,
+            text=report
+        )
+        
+    except Exception as e:
+        log.error(f"Failed to send intelligent admin report: {e}")

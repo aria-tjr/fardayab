@@ -110,19 +110,33 @@ class FreePersianAPIs:
             now = datetime.now()
             persian_date = jdatetime.datetime.fromgregorian(datetime=now)
             
+            # Persian month names
+            persian_months = [
+                'فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور',
+                'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'
+            ]
+            
+            # Persian weekday names
+            persian_weekdays = [
+                'شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'
+            ]
+            
             return {
                 'persian_year': persian_date.year,
                 'persian_month': persian_date.month,
                 'persian_day': persian_date.day,
-                'persian_month_name': persian_date.strftime('%B'),
-                'persian_weekday': persian_date.strftime('%A'),
+                'persian_month_name': persian_months[persian_date.month - 1],
+                'persian_weekday': persian_weekdays[persian_date.weekday()],
                 'is_leap_year': jdatetime.date(persian_date.year, 1, 1).isleap(),
                 'season': self._get_persian_season(persian_date.month)
             }
         except ImportError:
             log.warning("jdatetime not available, using fallback")
+            # Calculate current Persian year manually (2025 = 1404)
+            current_gregorian_year = datetime.now().year
+            persian_year = current_gregorian_year - 621  # 2025 - 621 = 1404
             return {
-                'persian_year': 1403,
+                'persian_year': persian_year,
                 'persian_month': 1,
                 'persian_day': 1,
                 'persian_month_name': 'فروردین',
@@ -132,7 +146,18 @@ class FreePersianAPIs:
             }
         except Exception as e:
             log.warning(f"Persian calendar failed: {e}")
-            return {}
+            # Fallback with correct year
+            current_gregorian_year = datetime.now().year
+            persian_year = current_gregorian_year - 621  # 2025 - 621 = 1404
+            return {
+                'persian_year': persian_year,
+                'persian_month': 1,
+                'persian_day': 1,
+                'persian_month_name': 'فروردین',
+                'persian_weekday': 'شنبه',
+                'is_leap_year': False,
+                'season': 'بهار'
+            }
     
     def _get_persian_season(self, month: int) -> str:
         """Get Persian season based on month"""

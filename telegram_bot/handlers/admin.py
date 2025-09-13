@@ -51,7 +51,7 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
             return
         await msg.answer(
             "سلام! بات مدیریت کانال آماده است.\n"
-            "فرمان‌ها: /run, /status, /health, /refresh, /persian, /free, /style, /content, /intelligent, /analytics, /optimize, /settime HH:MM, /settz Area/City, /postlast3days"
+            "فرمان‌ها: /run, /status, /health, /refresh, /persian, /free, /style, /content, /intelligent, /analytics, /optimize, /intelligentpost, /multipost, /settime HH:MM, /settz Area/City, /postlast3days"
         )
 
     @router.message(Command("run"))
@@ -950,5 +950,79 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
             )
         except Exception as e:
             await msg.answer(f"❌ خطا در بهینه‌سازی: {e}")
+
+    @router.message(Command("intelligentpost"))
+    async def intelligent_post(msg: Message):
+        if not is_admin(msg):
+            return
+        
+        try:
+            await msg.answer("🚀 شروع سیستم پست‌گذاری هوشمند...")
+            
+            # Import the intelligent daily job
+            from telegram_bot.scheduler.jobs import intelligent_daily_job
+            
+            # Run the intelligent posting system
+            await intelligent_daily_job(msg.bot, settings, db, scheduler)
+            
+            await msg.answer("✅ سیستم پست‌گذاری هوشمند با موفقیت اجرا شد!")
+            
+        except Exception as e:
+            await msg.answer(f"❌ خطا در اجرای سیستم هوشمند: {e}")
+
+    @router.message(Command("multipost"))
+    async def multi_post(msg: Message):
+        if not is_admin(msg):
+            return
+        
+        try:
+            await msg.answer("🎯 شروع پست‌گذاری چندگانه هوشمند...")
+            
+            # Import required modules
+            from telegram_bot.scheduler.intelligent_scheduler import IntelligentPostingScheduler
+            from telegram_bot.modules.collector import collect_all
+            from telegram_bot.ai.sentiment import analyze_news_sentiment
+            from telegram_bot.utils import mcache
+            
+            # Initialize intelligent scheduler
+            intelligent_scheduler = IntelligentPostingScheduler(settings)
+            
+            # Collect data
+            cache_key = "multipost_data"
+            cached = mcache.get(cache_key)
+            if cached is None:
+                data = await collect_all(settings)
+                mcache.set(cache_key, data, ttl=900)
+            else:
+                data = cached
+            
+            # Add sentiment analysis
+            data["sentiment"] = await analyze_news_sentiment(settings, data.get("news") or [])
+            
+            # Generate posting plan
+            posting_plan = await intelligent_scheduler.generate_intelligent_posting_plan(data)
+            
+            # Show the plan
+            plan_text = f"""📋 **برنامه پست‌گذاری هوشمند**
+
+🎯 **جزئیات کلی:**
+• تعداد پست‌ها: {posting_plan['total_posts']}
+• استراتژی: {posting_plan['strategy']}
+• پیش‌بینی تعامل: {posting_plan['engagement_prediction']:.1%}
+• تنوع محتوا: {posting_plan['content_diversity']:.1%}
+
+📅 **زمان‌بندی پست‌ها:**
+"""
+            
+            for i, post in enumerate(posting_plan["posts"], 1):
+                plan_text += f"• پست {i}: {post['content_type']} در {post['scheduled_time'].strftime('%H:%M')}\n"
+            
+            await msg.answer(plan_text)
+            
+            # Ask for confirmation
+            await msg.answer("آیا می‌خواهید این برنامه را اجرا کنید؟ (بله/خیر)")
+            
+        except Exception as e:
+            await msg.answer(f"❌ خطا در تولید برنامه: {e}")
 
     return router

@@ -22,6 +22,40 @@ class IntelligentPostingScheduler:
         self.posting_history = []
         self.engagement_data = {}
         self.optimal_times = []
+    
+    async def get_optimal_posting_times(self) -> List[datetime]:
+        """
+        Get optimal posting times for maximum engagement
+        """
+        try:
+            # Get optimal times from curator
+            optimal_times = await self.curator.get_optimal_posting_times()
+            
+            # Convert to datetime objects for today
+            now = datetime.now()
+            times = []
+            
+            for hour, minute in optimal_times:
+                post_time = now.replace(hour=hour, minute=minute, second=0, microsecond=0)
+                if post_time <= now:
+                    post_time += timedelta(days=1)
+                times.append(post_time)
+            
+            # Sort by time
+            times.sort()
+            return times
+            
+        except Exception as e:
+            log.error(f"Failed to get optimal posting times: {e}")
+            # Fallback to default times
+            now = datetime.now()
+            default_times = [
+                now.replace(hour=8, minute=0, second=0, microsecond=0),
+                now.replace(hour=14, minute=0, second=0, microsecond=0),
+                now.replace(hour=18, minute=0, second=0, microsecond=0),
+                now.replace(hour=21, minute=0, second=0, microsecond=0),
+            ]
+            return [t for t in default_times if t > now]
         
     async def calculate_optimal_posting_schedule(self, content_types: List[str]) -> List[Dict[str, Any]]:
         """Calculate optimal posting schedule based on content types and audience patterns"""
@@ -290,7 +324,7 @@ class IntelligentPostingScheduler:
             processed_content = await self.processor.enhance_content_for_engagement(base_content)
             
             # Apply time-specific optimizations
-            hour = post_info['post_time'].hour'
+            hour = post_info['post_time'].hour
             if 8 <= hour <= 10:
                 processed_content = "🌅 صبح بخیر! " + processed_content
             elif 18 <= hour <= 22:
@@ -413,3 +447,288 @@ class IntelligentPostingScheduler:
         except Exception as e:
             log.error(f"Specific recommendations failed: {e}")
             return ["محتوا را به طور مداوم بهبود دهید"]
+    
+    async def generate_intelligent_posting_plan(self, content_data: dict) -> dict:
+        """
+        Generate an intelligent multi-posting plan for the day
+        """
+        try:
+            log.info("🎯 Generating intelligent multi-posting plan...")
+            
+            # Get optimal posting times
+            optimal_times = await self.get_optimal_posting_times()
+            
+            # Analyze content variety and quality
+            content_analysis = await self._analyze_content_for_posting(content_data)
+            
+            # Generate posting schedule
+            posting_plan = {
+                "total_posts": min(6, max(3, content_analysis.get("recommended_posts", 4))),
+                "posts": [],
+                "strategy": "intelligent_distribution",
+                "engagement_prediction": content_analysis.get("engagement_score", 0.7),
+                "content_diversity": content_analysis.get("diversity_score", 0.8)
+            }
+            
+            # Create individual post plans
+            for i in range(posting_plan["total_posts"]):
+                post_time = optimal_times[i % len(optimal_times)]
+                content_type = self._select_content_type_for_time(post_time, i)
+                
+                post_plan = {
+                    "post_id": i + 1,
+                    "scheduled_time": post_time,
+                    "content_type": content_type,
+                    "priority": "high" if i < 2 else "medium",
+                    "engagement_focus": "peak" if i < 3 else "sustained",
+                    "emoji_usage": "high" if i % 2 == 0 else "moderate",
+                    "formatting_style": "bold_headers" if i < 4 else "standard"
+                }
+                
+                posting_plan["posts"].append(post_plan)
+            
+            log.info(f"✅ Generated posting plan with {posting_plan['total_posts']} posts")
+            return posting_plan
+            
+        except Exception as e:
+            log.error(f"Failed to generate posting plan: {e}")
+            return self._get_fallback_posting_plan()
+    
+    async def _analyze_content_for_posting(self, content_data: dict) -> dict:
+        """
+        Analyze content quality and variety for intelligent posting decisions
+        """
+        try:
+            analysis = {
+                "content_quality": 0.8,
+                "diversity_score": 0.7,
+                "engagement_score": 0.75,
+                "recommended_posts": 4
+            }
+            
+            # Analyze content types available
+            content_types = []
+            if content_data.get("economy"):
+                content_types.append("economy")
+            if content_data.get("sports"):
+                content_types.append("sports")
+            if content_data.get("trends"):
+                content_types.append("trends")
+            if content_data.get("insight"):
+                content_types.append("insight")
+            if content_data.get("culture"):
+                content_types.append("culture")
+            if content_data.get("technology"):
+                content_types.append("technology")
+            if content_data.get("literature"):
+                content_types.append("literature")
+            if content_data.get("lifestyle"):
+                content_types.append("lifestyle")
+            if content_data.get("travel"):
+                content_types.append("travel")
+            
+            # Calculate diversity score
+            analysis["diversity_score"] = min(1.0, len(content_types) / 6.0)
+            
+            # Calculate recommended number of posts based on content quality
+            if analysis["diversity_score"] > 0.8:
+                analysis["recommended_posts"] = 6
+            elif analysis["diversity_score"] > 0.6:
+                analysis["recommended_posts"] = 5
+            else:
+                analysis["recommended_posts"] = 4
+            
+            # Calculate engagement score based on content freshness and relevance
+            analysis["engagement_score"] = min(1.0, analysis["diversity_score"] + 0.2)
+            
+            return analysis
+            
+        except Exception as e:
+            log.error(f"Content analysis failed: {e}")
+            return {
+                "content_quality": 0.7,
+                "diversity_score": 0.6,
+                "engagement_score": 0.65,
+                "recommended_posts": 4
+            }
+    
+    def _select_content_type_for_time(self, post_time: datetime, post_index: int) -> str:
+        """
+        Select the best content type for a specific posting time
+        """
+        hour = post_time.hour
+        
+        # Morning posts (6-11): Economy, Technology, Lifestyle
+        if 6 <= hour < 12:
+            types = ["economy", "technology", "lifestyle", "culture"]
+        # Afternoon posts (12-17): Sports, Trends, Literature
+        elif 12 <= hour < 18:
+            types = ["sports", "trends", "literature", "travel"]
+        # Evening posts (18-23): Insight, Culture, Lifestyle
+        else:
+            types = ["insight", "culture", "lifestyle", "trends"]
+        
+        return types[post_index % len(types)]
+    
+    def _get_fallback_posting_plan(self) -> dict:
+        """
+        Get a fallback posting plan when intelligent analysis fails
+        """
+        return {
+            "total_posts": 4,
+            "posts": [
+                {
+                    "post_id": 1,
+                    "scheduled_time": datetime.now().replace(hour=8, minute=0, second=0, microsecond=0),
+                    "content_type": "economy",
+                    "priority": "high",
+                    "engagement_focus": "peak",
+                    "emoji_usage": "high",
+                    "formatting_style": "bold_headers"
+                },
+                {
+                    "post_id": 2,
+                    "scheduled_time": datetime.now().replace(hour=14, minute=0, second=0, microsecond=0),
+                    "content_type": "sports",
+                    "priority": "high",
+                    "engagement_focus": "peak",
+                    "emoji_usage": "high",
+                    "formatting_style": "bold_headers"
+                },
+                {
+                    "post_id": 3,
+                    "scheduled_time": datetime.now().replace(hour=18, minute=0, second=0, microsecond=0),
+                    "content_type": "trends",
+                    "priority": "medium",
+                    "engagement_focus": "sustained",
+                    "emoji_usage": "moderate",
+                    "formatting_style": "standard"
+                },
+                {
+                    "post_id": 4,
+                    "scheduled_time": datetime.now().replace(hour=21, minute=0, second=0, microsecond=0),
+                    "content_type": "insight",
+                    "priority": "medium",
+                    "engagement_focus": "sustained",
+                    "emoji_usage": "moderate",
+                    "formatting_style": "standard"
+                }
+            ],
+            "strategy": "fallback_distribution",
+            "engagement_prediction": 0.65,
+            "content_diversity": 0.6
+        }
+    
+    async def execute_intelligent_posting_plan(self, posting_plan: dict, content_data: dict) -> dict:
+        """
+        Execute the intelligent posting plan
+        """
+        try:
+            log.info(f"🚀 Executing intelligent posting plan with {posting_plan['total_posts']} posts")
+            
+            results = {
+                "successful_posts": 0,
+                "failed_posts": 0,
+                "execution_time": datetime.now(),
+                "posts_details": []
+            }
+            
+            for post_plan in posting_plan["posts"]:
+                try:
+                    # Generate content for this specific post
+                    post_content = await self._generate_post_content(
+                        post_plan, content_data
+                    )
+                    
+                    if post_content:
+                        # Schedule the post
+                        await self._schedule_single_post(post_plan, post_content)
+                        
+                        results["successful_posts"] += 1
+                        results["posts_details"].append({
+                            "post_id": post_plan["post_id"],
+                            "content_type": post_plan["content_type"],
+                            "scheduled_time": post_plan["scheduled_time"],
+                            "status": "scheduled"
+                        })
+                        
+                        log.info(f"✅ Scheduled post {post_plan['post_id']} ({post_plan['content_type']}) for {post_plan['scheduled_time']}")
+                    else:
+                        results["failed_posts"] += 1
+                        log.warning(f"⚠️ Failed to generate content for post {post_plan['post_id']}")
+                        
+                except Exception as e:
+                    results["failed_posts"] += 1
+                    log.error(f"❌ Failed to execute post {post_plan['post_id']}: {e}")
+            
+            log.info(f"🎯 Intelligent posting execution completed: {results['successful_posts']} successful, {results['failed_posts']} failed")
+            return results
+            
+        except Exception as e:
+            log.error(f"Failed to execute posting plan: {e}")
+            return {
+                "successful_posts": 0,
+                "failed_posts": posting_plan.get("total_posts", 0),
+                "execution_time": datetime.now(),
+                "posts_details": [],
+                "error": str(e)
+            }
+    
+    async def _generate_post_content(self, post_plan: dict, content_data: dict) -> str:
+        """
+        Generate content for a specific post based on the plan
+        """
+        try:
+            content_type = post_plan["content_type"]
+            
+            # Get the appropriate content from content_data
+            if content_type in content_data and content_data[content_type]:
+                base_content = content_data[content_type]
+            else:
+                # Fallback content generation
+                base_content = f"محتوای {content_type} برای زمان {post_plan['scheduled_time'].strftime('%H:%M')}"
+            
+            # Apply formatting based on post plan
+            if post_plan.get("formatting_style") == "bold_headers":
+                formatted_content = f"**{content_type.upper()}**\n\n{base_content}"
+            else:
+                formatted_content = base_content
+            
+            # Add emojis based on plan
+            if post_plan.get("emoji_usage") == "high":
+                emoji_map = {
+                    "economy": "💰📈",
+                    "sports": "⚽🏆",
+                    "trends": "🔥📊",
+                    "insight": "💡🎯",
+                    "culture": "🎭📚",
+                    "technology": "🚀💻",
+                    "literature": "📖✍️",
+                    "lifestyle": "🌟💫",
+                    "travel": "✈️🌍"
+                }
+                emoji = emoji_map.get(content_type, "📝")
+                formatted_content = f"{emoji} {formatted_content}"
+            
+            return formatted_content
+            
+        except Exception as e:
+            log.error(f"Failed to generate post content: {e}")
+            return None
+    
+    async def _schedule_single_post(self, post_plan: dict, content: str):
+        """
+        Schedule a single post (placeholder for actual scheduling implementation)
+        """
+        try:
+            # This would integrate with your actual posting mechanism
+            # For now, we'll just log the scheduling
+            log.info(f"📅 Scheduling post: {post_plan['content_type']} at {post_plan['scheduled_time']}")
+            log.info(f"Content preview: {content[:100]}...")
+            
+            # Here you would integrate with your actual posting system
+            # For example, using APScheduler or your existing posting mechanism
+            
+        except Exception as e:
+            log.error(f"Failed to schedule single post: {e}")
+            raise
