@@ -125,8 +125,26 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
         got = await db.acquire_lock(lock_key, ttl=600)
         if not got:
             return
+        # Content filtering and validation
+        from telegram_bot.utils.formatting import clip_telegram_text, normalize_persian, format_sources, is_generic_social_media_advice
+        
+        # Filter out generic social media advice
+        if is_generic_social_media_advice(text):
+            log.warning("Filtered out generic social media advice content")
+            # Try alternative variant if available
+            alt = 'B' if variant == 'A' else 'A'
+            text2 = variants.get(alt) or ""
+            if text2 and not is_generic_social_media_advice(text2):
+                text = text2
+                content_hash = hashlib.sha256(text.encode('utf-8')).hexdigest()
+            else:
+                # Use fallback content
+                if settings.POST_MODE == 'split' and topic == 'insight':
+                    text = "**💡 نکته طلایی روز** ✨\n─" * 20 + "\n🎯 همیشه قبل از سرمایه‌گذاری، ریسک خود را ارزیابی کنید. تنوع‌بخشی کلید موفقیت است! 💰\n\n#سرمایه‌گذاری #ریسک #تنوع‌بخشی #طلایی"
+                else:
+                    text = "**📊 تحلیل روز** 📈\n─" * 20 + "\n🔄 داده‌های جدید در حال پردازش است. به‌زودی تحلیل کامل ارائه خواهد شد. ⏳\n\n#به‌زودی #تحلیل #داده"
+        
         # Optional sources, disclaimer, normalization and safe clipping
-        from telegram_bot.utils.formatting import clip_telegram_text, normalize_persian, format_sources
         if settings.INCLUDE_SOURCES:
             srcs = format_sources((data or {}).get("news"), settings.SOURCES_COUNT)
             if srcs:

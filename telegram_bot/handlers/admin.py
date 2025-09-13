@@ -51,7 +51,7 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
             return
         await msg.answer(
             "سلام! بات مدیریت کانال آماده است.\n"
-            "فرمان‌ها: /run, /status, /settime HH:MM, /settz Area/City, /postlast3days"
+            "فرمان‌ها: /run, /status, /health, /refresh, /persian, /free, /style, /content, /intelligent, /analytics, /optimize, /settime HH:MM, /settz Area/City, /postlast3days"
         )
 
     @router.message(Command("run"))
@@ -103,6 +103,10 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
         if not is_admin(msg):
             return
         try:
+            from telegram_bot.scheduler.realtime import HealthChecker
+            health_checker = HealthChecker(settings)
+            health_status = await health_checker.check_health()
+            
             # quick DB check
             lr = await db.last_run()
             jobs = scheduler.get_jobs()
@@ -110,14 +114,27 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
                 "OPENAI": bool(settings.OPENAI_API_KEY),
                 "NEWS": bool(settings.NEWSAPI_KEY or settings.NEWSDATA_KEY or settings.MEDIASTACK_KEY),
             }
+            
+            status_emoji = "✅" if health_status["overall"] else "⚠️"
+            internet_emoji = "✅" if health_status["internet"] else "❌"
+            openai_emoji = "✅" if health_status["openai"] else "❌"
+            apis_emoji = "✅" if health_status["apis"] else "❌"
+            
             await msg.answer(
-                "سلامت سیستم:\n"
+                f"{status_emoji} **وضعیت سیستم**\n"
+                f"🌐 اینترنت: {internet_emoji}\n"
+                f"🤖 OpenAI: {openai_emoji}\n"
+                f"📡 APIs: {apis_emoji}\n"
+                f"⏰ آخرین بررسی: {health_status['last_check']}\n\n"
+                f"📊 **جزئیات:**\n"
                 f"- Jobs: {len(jobs)}\n"
                 f"- آخرین اجرا: {('ok' if lr else '—')}\n"
                 f"- کلیدها: OpenAI={keys['OPENAI']} News={keys['NEWS']}\n"
+                f"- مدل: {settings.OPENAI_MODEL}\n"
+                f"- Real-time: {'فعال' if settings.ENABLE_REAL_TIME_DATA else 'غیرفعال'}"
             )
         except Exception as e:
-            await msg.answer(f"Health error: {e}")
+            await msg.answer(f"خطا در بررسی سلامت: {e}")
 
     @router.message(Command("settime"))
     async def set_time(msg: Message):
@@ -360,6 +377,12 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
             else:
                 var = await generate_post_variants(settings, data)
                 text = var.get(variant_force) or ''
+        # Content filtering
+        from telegram_bot.utils.formatting import is_generic_social_media_advice
+        if is_generic_social_media_advice(text):
+            await msg.answer("⚠️ محتوای تولید شده حاوی توصیه‌های عمومی شبکه‌های اجتماعی است و فیلتر شد. لطفاً دوباره تلاش کنید.")
+            return
+            
         text = normalize_persian(clip_telegram_text(text))
         await msg.bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=text, disable_web_page_preview=True)
         await msg.answer("منتشر شد.")
@@ -441,7 +464,12 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
                                         text = format_insight_post(None)
                                 
                                 if text.strip():
-                                    await _send_one(day, fresh_data, text)
+                                    # Content filtering
+                                    from telegram_bot.utils.formatting import is_generic_social_media_advice
+                                    if not is_generic_social_media_advice(text):
+                                        await _send_one(day, fresh_data, text)
+                                    else:
+                                        await msg.answer(f"⚠️ محتوای {topic} برای {day.isoformat()} فیلتر شد (توصیه‌های عمومی شبکه‌های اجتماعی)")
                         except Exception as e:
                             await msg.answer(f"خطا در تولید پست {topic} برای {day.isoformat()}: {e}")
                 else:
@@ -464,7 +492,12 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
                             )
                         
                         if text.strip():
-                            await _send_one(day, fresh_data, text)
+                            # Content filtering
+                            from telegram_bot.utils.formatting import is_generic_social_media_advice
+                            if not is_generic_social_media_advice(text):
+                                await _send_one(day, fresh_data, text)
+                            else:
+                                await msg.answer(f"⚠️ محتوای ترکیبی برای {day.isoformat()} فیلتر شد (توصیه‌های عمومی شبکه‌های اجتماعی)")
                     except Exception as e:
                         await msg.answer(f"خطا در تولید پست ترکیبی برای {day.isoformat()}: {e}")
                         
@@ -631,5 +664,291 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
         except Exception:
             pass
         await msg.answer(f"انجام شد. {posted} پست از آرشیو منتشر شد.")
+
+    @router.message(Command("refresh"))
+    async def refresh_data(msg: Message):
+        if not is_admin(msg):
+            return
+        await msg.answer("🔄 در حال به‌روزرسانی داده‌های Real-time...")
+        try:
+            from telegram_bot.scheduler.realtime import RealTimeScheduler, HealthChecker
+            from telegram_bot.utils.connectivity import create_connectivity_system
+            
+            # Create temporary instances for refresh
+            _, data_manager, _ = await create_connectivity_system(settings)
+            realtime_scheduler = RealTimeScheduler(settings, data_manager)
+            health_checker = HealthChecker(settings)
+            
+            # Force data update
+            fresh_data = await realtime_scheduler.force_update()
+            
+            # Check health
+            health_status = await health_checker.check_health()
+            
+            await msg.answer(
+                f"✅ **داده‌ها به‌روزرسانی شدند**\n"
+                f"🌐 اینترنت: {'✅' if health_status['internet'] else '❌'}\n"
+                f"🤖 OpenAI: {'✅' if health_status['openai'] else '❌'}\n"
+                f"📡 APIs: {'✅' if health_status['apis'] else '❌'}\n"
+                f"📊 داده‌های جدید: {len(fresh_data.get('news', []))} خبر، {len(fresh_data.get('trends', []))} ترند"
+            )
+        except Exception as e:
+            await msg.answer(f"❌ خطا در به‌روزرسانی: {e}")
+
+    @router.message(Command("persian"))
+    async def test_persian_apis(msg: Message):
+        if not is_admin(msg):
+            return
+        await msg.answer("🇮🇷 در حال تست APIهای فارسی...")
+        try:
+            from telegram_bot.modules.persian_apis import PersianContentEnhancer
+            persian_enhancer = PersianContentEnhancer(settings)
+            
+            # Test Persian content enhancement
+            persian_data = await persian_enhancer.get_enhanced_persian_data()
+            
+            # Test translation
+            test_text = "Hello, this is a test message for Persian translation."
+            translated = await persian_enhancer.translation_api.translate_to_persian(test_text)
+            
+            # Count available APIs
+            api_status = {
+                "World News": bool(settings.WORLD_NEWS_API_KEY),
+                "Lingvanex": bool(settings.LINGVANEX_API_KEY),
+                "Tasnim": bool(settings.TASNIM_API_KEY),
+                "ISNA": bool(settings.ISNA_API_KEY),
+                "Mehr": bool(settings.MEHR_API_KEY),
+                "Fars": bool(settings.FARS_API_KEY),
+            }
+            
+            active_apis = sum(api_status.values())
+            persian_news_count = len(persian_data.get('persian_news', []))
+            
+            await msg.answer(
+                f"🇮🇷 **وضعیت APIهای فارسی**\n"
+                f"📊 APIهای فعال: {active_apis}/6\n"
+                f"📰 اخبار فارسی: {persian_news_count} مقاله\n"
+                f"🔧 بهبود محتوا: {'✅' if persian_data.get('enhanced', False) else '❌'}\n"
+                f"🌐 ترجمه: {'✅' if translated != test_text else '❌'}\n\n"
+                f"**جزئیات APIها:**\n" +
+                "\n".join([f"{name}: {'✅' if status else '❌'}" for name, status in api_status.items()]) +
+                f"\n\n**مثال ترجمه:**\n{test_text}\n→ {translated}"
+            )
+        except Exception as e:
+            await msg.answer(f"❌ خطا در تست APIهای فارسی: {e}")
+
+    @router.message(Command("free"))
+    async def test_free_persian_apis(msg: Message):
+        if not is_admin(msg):
+            return
+        await msg.answer("🆓 در حال تست APIهای رایگان فارسی...")
+        try:
+            from telegram_bot.modules.free_persian_apis import FreePersianAPIs
+            free_apis = FreePersianAPIs(settings)
+            
+            # Test all free APIs
+            free_data = await free_apis.get_enhanced_persian_content()
+            
+            # Test Persian text processing
+            test_text = "سلام، این یک متن تست برای پردازش فارسی است."
+            text_analysis = await free_apis.process_persian_text(test_text)
+            
+            # Get calendar info
+            calendar_info = await free_apis.get_persian_calendar_info()
+            
+            books_count = len(free_data.get('persian_books', []))
+            countries_count = len(free_data.get('countries_info', []))
+            apis_count = len(free_data.get('iranian_apis', []))
+            
+            await msg.answer(
+                f"🆓 **APIهای رایگان فارسی**\n"
+                f"📚 کتاب‌ها: {books_count} عنوان\n"
+                f"🌍 کشورها: {countries_count} کشور\n"
+                f"🔧 APIهای ایرانی: {apis_count} منبع\n"
+                f"📅 تقویم فارسی: {'✅' if calendar_info else '❌'}\n"
+                f"📝 پردازش متن: {'✅' if text_analysis.get('processed', False) else '❌'}\n\n"
+                f"**جزئیات تقویم:**\n"
+                f"سال: {calendar_info.get('persian_year', 'نامشخص')}\n"
+                f"ماه: {calendar_info.get('persian_month_name', 'نامشخص')}\n"
+                f"فصل: {calendar_info.get('season', 'نامشخص')}\n\n"
+                f"**تحلیل متن:**\n"
+                f"نسبت فارسی: {text_analysis.get('persian_ratio', 0):.2%}\n"
+                f"کلمات فارسی: {text_analysis.get('persian_word_count', 0)}\n"
+                f"کل کلمات: {text_analysis.get('total_words', 0)}"
+            )
+        except Exception as e:
+            await msg.answer(f"❌ خطا در تست APIهای رایگان: {e}")
+
+    @router.message(Command("style"))
+    async def test_channel_style(msg: Message):
+        if not is_admin(msg):
+            return
+        await msg.answer("🎨 در حال تست استایل کانال فردایاب...")
+        try:
+            from telegram_bot.modules.collector import collect_all
+            from telegram_bot.ai.generator import generate_post_variants
+            
+            # Collect fresh data
+            fresh_data = await collect_all(settings)
+            
+            # Generate post with Fardayab style
+            variants = await generate_post_variants(settings, fresh_data)
+            
+            if variants.get('A'):
+                await msg.answer(
+                    f"🎨 **استایل کانال فردایاب**\n\n"
+                    f"✅ پست تولید شد با استایل جدید\n"
+                    f"📊 بخش‌ها: اقتصاد، ورزش، ترند، Insight\n"
+                    f"🎯 تون: آموزشی/اطلاع‌رسانی\n"
+                    f"📝 طول: {len(variants['A'])} کاراکتر\n\n"
+                    f"**نمونه پست:**\n{variants['A'][:200]}..."
+                )
+            else:
+                await msg.answer("❌ خطا در تولید پست با استایل جدید")
+                
+        except Exception as e:
+            await msg.answer(f"❌ خطا در تست استایل: {e}")
+
+    @router.message(Command("content"))
+    async def test_content_types(msg: Message):
+        if not is_admin(msg):
+            return
+        await msg.answer("📚 در حال تست انواع محتوا...")
+        try:
+            from telegram_bot.modules.content_types import EnhancedContentManager
+            content_manager = EnhancedContentManager(settings)
+            
+            # Test all content types
+            all_content = await content_manager.get_all_enhanced_content()
+            
+            # Count available content
+            culture_count = len(all_content.get('culture_and_arts', {}).get('cultural_events', []))
+            tech_count = len(all_content.get('technology_innovation', {}).get('iranian_tech', []))
+            literature_count = 1 if all_content.get('literature_poetry', {}).get('daily_poem') else 0
+            lifestyle_count = len(all_content.get('lifestyle_health', {}).get('health_tips', []))
+            travel_count = len(all_content.get('travel_tourism', {}).get('destinations', []))
+            
+            total_content = culture_count + tech_count + literature_count + lifestyle_count + travel_count
+            
+            await msg.answer(
+                f"📚 **انواع محتوای فردایاب**\n\n"
+                f"🎭 فرهنگ و هنر: {culture_count} محتوا\n"
+                f"🚀 تکنولوژی و نوآوری: {tech_count} محتوا\n"
+                f"📖 ادبیات و شعر: {literature_count} شعر روز\n"
+                f"🌱 سبک زندگی و سلامت: {lifestyle_count} نکته\n"
+                f"✈️ سفر و گردشگری: {travel_count} مقصد\n\n"
+                f"📊 **مجموع محتوا:** {total_content} مورد\n"
+                f"✅ **وضعیت:** {'فعال' if all_content.get('enhanced_content_active', False) else 'غیرفعال'}\n\n"
+                f"**دستورات تست:**\n"
+                f"/content culture - تست فرهنگ و هنر\n"
+                f"/content tech - تست تکنولوژی\n"
+                f"/content literature - تست ادبیات\n"
+                f"/content lifestyle - تست سبک زندگی\n"
+                f"/content travel - تست سفر"
+            )
+        except Exception as e:
+            await msg.answer(f"❌ خطا در تست انواع محتوا: {e}")
+
+    @router.message(Command("intelligent"))
+    async def test_intelligent_systems(msg: Message):
+        if not is_admin(msg):
+            return
+        await msg.answer("🧠 در حال تست سیستم‌های هوشمند...")
+        try:
+            from telegram_bot.ai.intelligent_curator import IntelligentContentCurator
+            from telegram_bot.ai.persian_processor import AdvancedPersianProcessor
+            from telegram_bot.scheduler.intelligent_scheduler import IntelligentPostingScheduler
+            from telegram_bot.analytics.channel_monitor import ChannelAnalyticsMonitor
+            
+            # Test intelligent curator
+            curator = IntelligentContentCurator(settings)
+            recommendations = await curator.get_content_recommendations()
+            
+            # Test Persian processor
+            processor = AdvancedPersianProcessor(settings)
+            test_text = "سلام، این یک متن تست برای پردازش هوشمند فارسی است."
+            text_analysis = await processor.process_persian_text(test_text)
+            
+            # Test intelligent scheduler
+            scheduler = IntelligentPostingScheduler(settings)
+            content_types = ['economy', 'sports', 'trends', 'culture', 'technology']
+            optimal_schedule = await scheduler.calculate_optimal_posting_schedule(content_types)
+            
+            # Test analytics monitor
+            monitor = ChannelAnalyticsMonitor(settings)
+            health_status = await monitor.monitor_channel_health(msg.bot)
+            
+            await msg.answer(
+                f"🧠 **سیستم‌های هوشمند فردایاب**\n\n"
+                f"🎯 **مشاور محتوا:**\n"
+                f"توصیه‌ها: {len(recommendations.get('engagement_tips', []))} مورد\n"
+                f"زمان‌های بهینه: {len(recommendations.get('optimal_posting_times', []))} زمان\n\n"
+                f"📝 **پردازش فارسی:**\n"
+                f"نسبت فارسی: {text_analysis.get('language_analysis', {}).get('persian_ratio', 0):.1%}\n"
+                f"کیفیت محتوا: {text_analysis.get('content_quality', {}).get('overall_quality', 0):.2f}\n"
+                f"قابلیت خوانایی: {text_analysis.get('readability_score', 0):.1f}/10\n\n"
+                f"⏰ **زمان‌بندی هوشمند:**\n"
+                f"زمان‌های بهینه: {len(optimal_schedule)} زمان\n"
+                f"اولویت بالا: {optimal_schedule[0]['content_type'] if optimal_schedule else 'نامشخص'}\n\n"
+                f"📊 **نظارت کانال:**\n"
+                f"امتیاز سلامت: {health_status.get('health_score', 0):.1%}\n"
+                f"وضعیت: {health_status.get('status', 'نامشخص')}\n"
+                f"هشدارها: {len(health_status.get('warnings', []))} مورد\n"
+                f"مشکلات: {len(health_status.get('issues', []))} مورد"
+            )
+        except Exception as e:
+            await msg.answer(f"❌ خطا در تست سیستم‌های هوشمند: {e}")
+
+    @router.message(Command("analytics"))
+    async def get_channel_analytics(msg: Message):
+        if not is_admin(msg):
+            return
+        await msg.answer("📊 در حال جمع‌آوری آمار کانال...")
+        try:
+            from telegram_bot.analytics.channel_monitor import ChannelAnalyticsMonitor
+            monitor = ChannelAnalyticsMonitor(settings)
+            
+            # Generate comprehensive analytics report
+            report = await monitor.generate_analytics_report(msg.bot)
+            await msg.answer(report)
+            
+        except Exception as e:
+            await msg.answer(f"❌ خطا در جمع‌آوری آمار: {e}")
+
+    @router.message(Command("optimize"))
+    async def optimize_channel_content(msg: Message):
+        if not is_admin(msg):
+            return
+        await msg.answer("⚡ در حال بهینه‌سازی محتوا...")
+        try:
+            from telegram_bot.ai.intelligent_curator import IntelligentContentCurator
+            from telegram_bot.modules.collector import collect_all
+            
+            # Collect fresh data
+            fresh_data = await collect_all(settings)
+            
+            # Get intelligent curator
+            curator = IntelligentContentCurator(settings)
+            
+            # Select best content mix
+            optimal_content = await curator.select_best_content_mix(fresh_data)
+            
+            # Get recommendations
+            recommendations = await curator.get_content_recommendations()
+            
+            await msg.answer(
+                f"⚡ **بهینه‌سازی محتوا**\n\n"
+                f"📊 **محتوای بهینه انتخاب شده:**\n"
+                f"تعداد انواع محتوا: {len(optimal_content)}\n"
+                f"انواع محتوا: {', '.join(optimal_content.keys())}\n\n"
+                f"💡 **توصیه‌های بهینه‌سازی:**\n" +
+                "\n".join([f"• {tip}" for tip in recommendations.get('engagement_tips', [])[:3]]) + "\n\n"
+                f"⏰ **زمان‌های بهینه ارسال:**\n" +
+                "\n".join([f"• {time[0]}:{time[1]:02d}" for time in recommendations.get('optimal_posting_times', [])[:3]]) + "\n\n"
+                f"🎯 **موضوعات ترند:**\n" +
+                "\n".join([f"• {topic}" for topic in recommendations.get('trending_topics', [])[:3]])
+            )
+        except Exception as e:
+            await msg.answer(f"❌ خطا در بهینه‌سازی: {e}")
 
     return router

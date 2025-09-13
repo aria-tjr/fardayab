@@ -11,7 +11,7 @@ class Settings:
 
     # OpenAI
     OPENAI_API_KEY: str = ""
-    OPENAI_MODEL: str = "gpt-4o-mini"
+    OPENAI_MODEL: str = "gpt-5-mini-2025-08-07"  # Latest GPT-5-mini model
 
     # APIs
     NEWSAPI_KEY: str = ""
@@ -30,12 +30,26 @@ class Settings:
     # General
     ENV: str = "dev"
     LOG_LEVEL: str = "INFO"
-    HTTP_TIMEOUT: float = 15.0
+    HTTP_TIMEOUT: float = 30.0  # Increased timeout for better connectivity
     DB_PATH: str = "data/bot.db"
+    
+    # Internet Connectivity
+    ENABLE_REAL_TIME_DATA: bool = True
+    DATA_REFRESH_INTERVAL: int = 300  # 5 minutes
+    CONNECTION_RETRY_ATTEMPTS: int = 3
+    CONNECTION_RETRY_DELAY: float = 5.0
 
     # Content
     DEFAULT_CITIES: str = "Tehran, Munich"
     NEWS_LANGUAGE: str = "fa"
+    
+    # Persian APIs
+    WORLD_NEWS_API_KEY: str = ""
+    LINGVANEX_API_KEY: str = ""
+    TASNIM_API_KEY: str = ""
+    ISNA_API_KEY: str = ""
+    MEHR_API_KEY: str = ""
+    FARS_API_KEY: str = ""
 
     # A/B testing
     AB_SEED: str = "tg-content-factory"
@@ -56,7 +70,7 @@ class Settings:
     IMAGE_SIZE: str = "1024x1024"
     # AI controls
     STRUCTURED_GENERATION: bool = True
-    OPENAI_MODEL_LIGHT: str = "gpt-4o-mini"
+    OPENAI_MODEL_LIGHT: str = "gpt-5-mini-2025-08-07"  # Latest GPT-5-mini model
     ENABLE_MODERATION: bool = False
     # Content footers
     INCLUDE_DISCLAIMER: bool = True
@@ -93,6 +107,14 @@ class Settings:
         object.__setattr__(self, "THESPORTSDB_KEY", os.getenv("THESPORTSDB_KEY", self.THESPORTSDB_KEY))
         object.__setattr__(self, "API_FOOTBALL_KEY", os.getenv("API_FOOTBALL_KEY", self.API_FOOTBALL_KEY))
         object.__setattr__(self, "API_SPORTS_KEY", os.getenv("API_SPORTS_KEY", self.API_SPORTS_KEY))
+        
+        # Persian APIs
+        object.__setattr__(self, "WORLD_NEWS_API_KEY", os.getenv("WORLD_NEWS_API_KEY", self.WORLD_NEWS_API_KEY))
+        object.__setattr__(self, "LINGVANEX_API_KEY", os.getenv("LINGVANEX_API_KEY", self.LINGVANEX_API_KEY))
+        object.__setattr__(self, "TASNIM_API_KEY", os.getenv("TASNIM_API_KEY", self.TASNIM_API_KEY))
+        object.__setattr__(self, "ISNA_API_KEY", os.getenv("ISNA_API_KEY", self.ISNA_API_KEY))
+        object.__setattr__(self, "MEHR_API_KEY", os.getenv("MEHR_API_KEY", self.MEHR_API_KEY))
+        object.__setattr__(self, "FARS_API_KEY", os.getenv("FARS_API_KEY", self.FARS_API_KEY))
 
         object.__setattr__(self, "TIMEZONE", os.getenv("TIMEZONE", self.TIMEZONE))
         object.__setattr__(self, "DAILY_RUN_AT", os.getenv("DAILY_RUN_AT", self.DAILY_RUN_AT))
@@ -102,6 +124,12 @@ class Settings:
         object.__setattr__(self, "LOG_LEVEL", os.getenv("LOG_LEVEL", self.LOG_LEVEL))
         object.__setattr__(self, "HTTP_TIMEOUT", float(os.getenv("HTTP_TIMEOUT", str(self.HTTP_TIMEOUT))))
         object.__setattr__(self, "DB_PATH", os.getenv("DB_PATH", self.DB_PATH))
+        
+        # Internet Connectivity settings
+        object.__setattr__(self, "ENABLE_REAL_TIME_DATA", os.getenv("ENABLE_REAL_TIME_DATA", "1" if self.ENABLE_REAL_TIME_DATA else "0") == "1")
+        object.__setattr__(self, "DATA_REFRESH_INTERVAL", int(os.getenv("DATA_REFRESH_INTERVAL", str(self.DATA_REFRESH_INTERVAL))))
+        object.__setattr__(self, "CONNECTION_RETRY_ATTEMPTS", int(os.getenv("CONNECTION_RETRY_ATTEMPTS", str(self.CONNECTION_RETRY_ATTEMPTS))))
+        object.__setattr__(self, "CONNECTION_RETRY_DELAY", float(os.getenv("CONNECTION_RETRY_DELAY", str(self.CONNECTION_RETRY_DELAY))))
 
         object.__setattr__(self, "DEFAULT_CITIES", os.getenv("DEFAULT_CITIES", self.DEFAULT_CITIES))
         object.__setattr__(self, "NEWS_LANGUAGE", os.getenv("NEWS_LANGUAGE", self.NEWS_LANGUAGE))

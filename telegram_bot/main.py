@@ -13,8 +13,10 @@ from telegram_bot.utils.logging import setup_logging
 from telegram_bot.handlers.admin import admin_router
 from telegram_bot.scheduler.scheduler import build_scheduler
 from telegram_bot.scheduler.autoschedule import apply_autoschedule
+from telegram_bot.scheduler.realtime import RealTimeScheduler, HealthChecker
 from telegram_bot.data.db import Database
 from telegram_bot.handlers.polls import polls_router
+from telegram_bot.utils.connectivity import create_connectivity_system
 
 
 def _load_env() -> None:
@@ -49,6 +51,28 @@ async def main() -> None:
     db = Database(settings)
     await db.init()
 
+    # Initialize connectivity and real-time systems
+    connectivity_monitor, data_manager, model_updater = await create_connectivity_system(settings)
+    realtime_scheduler = RealTimeScheduler(settings, data_manager)
+    health_checker = HealthChecker(settings)
+
+    # Start real-time data updates if enabled
+    if settings.ENABLE_REAL_TIME_DATA:
+        await realtime_scheduler.start()
+        logging.getLogger(__name__).info("Real-time data updates enabled")
+
+    # Start connectivity monitoring
+    async def on_connectivity_change(is_connected: bool):
+        status = "connected" if is_connected else "disconnected"
+        logging.getLogger(__name__).info(f"Internet connectivity: {status}")
+        
+        if is_connected and settings.ENABLE_REAL_TIME_DATA:
+            # Force data update when reconnected
+            await realtime_scheduler.force_update()
+
+    # Start connectivity monitoring in background
+    connectivity_task = asyncio.create_task(connectivity_monitor.start_monitoring(on_connectivity_change))
+
     scheduler = build_scheduler(settings, bot, db)
     scheduler.start()
     # Align schedule with DB topic map and dynamic times at startup
@@ -60,14 +84,28 @@ async def main() -> None:
     dp.include_router(admin_router(settings, scheduler, db))
     dp.include_router(polls_router(db))
 
+    # Perform initial health check
+    health_status = await health_checker.check_health()
+    logging.getLogger(__name__).info(f"Initial health check: {health_checker.get_status_summary()}")
+
     logging.getLogger(__name__).info(
-        "Bot started. Timezone=%s Daily=%s Channel=%s",
+        "Bot started with real-time connectivity. Timezone=%s Daily=%s Channel=%s Model=%s",
         settings.TIMEZONE,
         settings.DAILY_RUN_AT,
         settings.TELEGRAM_CHANNEL_ID,
+        settings.OPENAI_MODEL,
     )
 
-    await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+    try:
+        await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
+    finally:
+        # Cleanup
+        await realtime_scheduler.stop()
+        connectivity_task.cancel()
+        try:
+            await connectivity_task
+        except asyncio.CancelledError:
+            pass
 
 
 if __name__ == "__main__":
