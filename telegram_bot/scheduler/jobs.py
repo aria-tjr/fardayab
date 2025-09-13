@@ -15,6 +15,7 @@ from telegram_bot.utils.formatting import format_channel_post
 from telegram_bot.utils.abtest import pick_variant
 from telegram_bot.utils.telemetry import topic_variant_stats
 from telegram_bot.utils.timeutils import now_tz
+from telegram_bot.utils.html_cleaner import create_telegram_safe_message
 from telegram_bot.ai.generator import generate_post_variants, generate_admin_suggestions, generate_topic_variants
 from telegram_bot.ai.structured import generate_combined_structured, generate_topic_structured
 from telegram_bot.utils.render import render_combined, render_topic
@@ -126,9 +127,11 @@ async def daily_job(bot: Bot, settings: Settings, db: Database, scheduler=None, 
             text = (text.rstrip() + "\n\n" + settings.DISCLAIMER_TEXT).strip()
         text = normalize_persian(text)
         text = clip_telegram_text(text)
+        # Clean HTML content for Telegram compatibility
+        safe_text = create_telegram_safe_message(text)
         msg = await bot.send_message(
             chat_id=settings.TELEGRAM_CHANNEL_ID,
-            text=text,
+            text=safe_text,
             disable_web_page_preview=True,
         )
 
@@ -309,9 +312,10 @@ async def _execute_immediate_posts(bot: Bot, settings: Settings, db: Database, p
                 
                 if content:
                     # Send the post
+                    safe_content = create_telegram_safe_message(content)
                     msg = await bot.send_message(
                         chat_id=settings.TELEGRAM_CHANNEL_ID,
-                        text=content,
+                        text=safe_content,
                         disable_web_page_preview=True,
                     )
                     
@@ -382,9 +386,10 @@ async def _send_scheduled_post(bot: Bot, settings: Settings, db: Database, post_
         content = await _generate_intelligent_post_content(post_plan, data, settings)
         
         if content:
+            safe_content = create_telegram_safe_message(content)
             msg = await bot.send_message(
                 chat_id=settings.TELEGRAM_CHANNEL_ID,
-                text=content,
+                text=safe_content,
                 disable_web_page_preview=True,
             )
             

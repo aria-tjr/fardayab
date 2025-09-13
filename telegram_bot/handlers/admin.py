@@ -34,6 +34,7 @@ from telegram_bot.utils.formatting import (
     format_insight_post,
 )
 from telegram_bot.utils.abtest import pick_variant
+from telegram_bot.utils.html_cleaner import create_telegram_safe_message
 import asyncio
 import hashlib
 from datetime import datetime, timedelta, time
@@ -384,7 +385,8 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
             return
             
         text = normalize_persian(clip_telegram_text(text))
-        await msg.bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=text, disable_web_page_preview=True)
+        safe_text = create_telegram_safe_message(text)
+        await msg.bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=safe_text, disable_web_page_preview=True)
         await msg.answer("منتشر شد.")
 
     @router.message(Command("postlast3days"))
@@ -409,7 +411,8 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
                 text_body = (text_body.rstrip() + "\n\n" + settings.DISCLAIMER_TEXT).strip()
             text_body = normalize_persian(clip_telegram_text(text_body))
             try:
-                sent = await msg.bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=text_body, disable_web_page_preview=True)
+                safe_text_body = create_telegram_safe_message(text_body)
+                sent = await msg.bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=safe_text_body, disable_web_page_preview=True)
                 last_message_id = sent.message_id
                 ch = hashlib.sha256(text_body.encode('utf-8')).hexdigest()
                 ts_seed = int(datetime.combine(day_date, time(12, 0), tzinfo=ZoneInfo(settings.TIMEZONE)).timestamp())
@@ -560,7 +563,8 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
                 text_body = (text_body.rstrip() + "\n\n" + settings.DISCLAIMER_TEXT).strip()
             text_body = normalize_persian(clip_telegram_text(text_body))
             try:
-                sent = await msg.bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=text_body, disable_web_page_preview=True)
+                safe_text_body = create_telegram_safe_message(text_body)
+                sent = await msg.bot.send_message(chat_id=settings.TELEGRAM_CHANNEL_ID, text=safe_text_body, disable_web_page_preview=True)
                 last_message_id = sent.message_id
                 ch = hashlib.sha256(text_body.encode('utf-8')).hexdigest()
                 ts_seed = int(datetime.combine(day_date, time(12, 0), tzinfo=ZoneInfo(settings.TIMEZONE)).timestamp())
