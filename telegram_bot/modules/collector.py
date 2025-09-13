@@ -10,7 +10,14 @@ from telegram_bot.modules.trends import fetch_trending
 from telegram_bot.modules.sports import fetch_sports
 from telegram_bot.modules.persian_apis import PersianContentEnhancer
 from telegram_bot.modules.free_persian_apis import FreePersianAPIs
-from telegram_bot.modules.content_types import EnhancedContentManager
+from telegram_bot.modules.crypto_content_types import CryptoForexContentManager
+from telegram_bot.modules.technical_analysis import AdvancedTechnicalAnalysis, AdvancedMarketScanner
+from telegram_bot.modules.portfolio_tracker import AdvancedPortfolioTracker
+from telegram_bot.modules.advanced_news import AdvancedNewsAggregator
+from telegram_bot.modules.trading_signals import AdvancedTradingSignals
+from telegram_bot.modules.ai_predictions import AIPredictor
+from telegram_bot.modules.risk_management import AdvancedRiskManager
+from telegram_bot.modules.binance_api import BinanceAPI, BinanceWebSocketManager
 
 
 async def _retry_api_call(api_func, max_retries: int = 3, delay: float = 2.0):
@@ -51,10 +58,19 @@ async def collect_all(settings: Settings) -> dict[str, Any]:
                     await asyncio.sleep(settings.CONNECTION_RETRY_DELAY)
         return None
 
-    # Initialize Persian content enhancer, free APIs, and enhanced content
+    # Initialize all advanced modules
     persian_enhancer = PersianContentEnhancer(settings)
     free_persian_apis = FreePersianAPIs(settings)
-    enhanced_content = EnhancedContentManager(settings)
+    crypto_forex_content = CryptoForexContentManager(settings)
+    technical_analysis = AdvancedTechnicalAnalysis(settings)
+    market_scanner = AdvancedMarketScanner(settings)
+    portfolio_tracker = AdvancedPortfolioTracker(settings)
+    news_aggregator = AdvancedNewsAggregator(settings)
+    trading_signals = AdvancedTradingSignals(settings)
+    ai_predictor = AIPredictor(settings)
+    risk_manager = AdvancedRiskManager(settings)
+    binance_api = BinanceAPI(settings)
+    binance_ws_manager = BinanceWebSocketManager(binance_api)
 
     # Run collectors concurrently with retry logic
     crypto_task = asyncio.create_task(_collect_with_retry(lambda: fetch_crypto_and_fx(settings)))
@@ -71,10 +87,27 @@ async def collect_all(settings: Settings) -> dict[str, Any]:
     trends_cmp_task = asyncio.create_task(_collect_with_retry(lambda: fetch_trending(settings.TRENDS_COMPARE_REGION, 10)))
     sports_task = asyncio.create_task(_collect_with_retry(lambda: fetch_sports(settings)))
     
-    # Persian content collection
+    # Advanced content collection
     persian_task = asyncio.create_task(persian_enhancer.get_enhanced_persian_data())
     free_persian_task = asyncio.create_task(free_persian_apis.get_enhanced_persian_content())
-    enhanced_content_task = asyncio.create_task(enhanced_content.get_all_enhanced_content())
+    crypto_forex_content_task = asyncio.create_task(crypto_forex_content.get_all_crypto_forex_content())
+    
+    # Advanced analysis tasks
+    crypto_news_task = asyncio.create_task(news_aggregator.fetch_crypto_news())
+    forex_news_task = asyncio.create_task(news_aggregator.fetch_forex_news())
+    crypto_scanner_task = asyncio.create_task(market_scanner.scan_crypto_markets())
+    forex_scanner_task = asyncio.create_task(market_scanner.scan_forex_markets())
+    btc_analysis_task = asyncio.create_task(technical_analysis.get_comprehensive_analysis("BTC"))
+    eth_analysis_task = asyncio.create_task(technical_analysis.get_comprehensive_analysis("ETH"))
+    btc_predictions_task = asyncio.create_task(ai_predictor.get_comprehensive_predictions("BTC"))
+    eth_predictions_task = asyncio.create_task(ai_predictor.get_comprehensive_predictions("ETH"))
+    btc_signals_task = asyncio.create_task(trading_signals.generate_signals("BTC"))
+    eth_signals_task = asyncio.create_task(trading_signals.generate_signals("ETH"))
+    
+    # Binance data collection
+    binance_market_summary_task = asyncio.create_task(binance_api.get_market_summary())
+    binance_crypto_prices_task = asyncio.create_task(binance_api.get_crypto_prices())
+    binance_forex_rates_task = asyncio.create_task(binance_api.get_forex_rates())
 
     crypto = await crypto_task
     news = await news_task
@@ -83,10 +116,27 @@ async def collect_all(settings: Settings) -> dict[str, Any]:
     sports = await sports_task
     persian_data = await persian_task
     free_persian_data = await free_persian_task
-    enhanced_content_data = await enhanced_content_task
+    crypto_forex_content_data = await crypto_forex_content_task
+    
+    # Advanced analysis results
+    crypto_news = await crypto_news_task
+    forex_news = await forex_news_task
+    crypto_scanner = await crypto_scanner_task
+    forex_scanner = await forex_scanner_task
+    btc_analysis = await btc_analysis_task
+    eth_analysis = await eth_analysis_task
+    btc_predictions = await btc_predictions_task
+    eth_predictions = await eth_predictions_task
+    btc_signals = await btc_signals_task
+    eth_signals = await eth_signals_task
+    
+    # Binance data results
+    binance_market_summary = await binance_market_summary_task
+    binance_crypto_prices = await binance_crypto_prices_task
+    binance_forex_rates = await binance_forex_rates_task
 
     # Enhanced debugging info
-    log.info(f"Real-time data collection results - Crypto: {bool(crypto)}, News: {len(news) if news else 0}, Trends: {len(trends) if trends else 0}, Sports: {len(sports) if sports else 0}, Persian: {persian_data.get('enhanced', False)}, Free Persian: {free_persian_data.get('free_apis_active', False)}, Enhanced Content: {enhanced_content_data.get('enhanced_content_active', False)}")
+    log.info(f"Real-time data collection results - Crypto: {bool(crypto)}, News: {len(news) if news else 0}, Trends: {len(trends) if trends else 0}, Sports: {len(sports) if sports else 0}, Persian: {persian_data.get('enhanced', False)}, Free Persian: {free_persian_data.get('free_apis_active', False)}, Crypto/Forex Content: {crypto_forex_content_data.get('crypto_forex_content_active', False)}")
     
     # Log connectivity status
     if settings.ENABLE_REAL_TIME_DATA:
@@ -142,10 +192,48 @@ async def collect_all(settings: Settings) -> dict[str, Any]:
         "persian_books": free_persian_data.get('persian_books', []),
         "countries_info": free_persian_data.get('countries_info', []),
         "persian_calendar": free_persian_data.get('persian_calendar', {}),
-        "enhanced_content": enhanced_content_data,
-        "culture_arts": enhanced_content_data.get('culture_and_arts', {}),
-        "technology_innovation": enhanced_content_data.get('technology_innovation', {}),
-        "literature_poetry": enhanced_content_data.get('literature_poetry', {}),
-        "lifestyle_health": enhanced_content_data.get('lifestyle_health', {}),
-        "travel_tourism": enhanced_content_data.get('travel_tourism', {}),
+        "crypto_forex_content": crypto_forex_content_data,
+        "cryptocurrency": crypto_forex_content_data.get('cryptocurrency', {}),
+        "forex": crypto_forex_content_data.get('forex', {}),
+        "trading": crypto_forex_content_data.get('trading', {}),
+        "regulatory": crypto_forex_content_data.get('regulatory', {}),
+        
+        # Advanced analysis data
+        "advanced_news": {
+            "crypto_news": crypto_news,
+            "forex_news": forex_news
+        },
+        "market_scanner": {
+            "crypto_opportunities": crypto_scanner,
+            "forex_opportunities": forex_scanner
+        },
+        "technical_analysis": {
+            "btc_analysis": btc_analysis,
+            "eth_analysis": eth_analysis
+        },
+        "ai_predictions": {
+            "btc_predictions": btc_predictions,
+            "eth_predictions": eth_predictions
+        },
+        "trading_signals": {
+            "btc_signals": btc_signals,
+            "eth_signals": eth_signals
+        },
+        "advanced_modules": {
+            "technical_analysis": True,
+            "portfolio_tracker": True,
+            "news_aggregator": True,
+            "trading_signals": True,
+            "ai_predictions": True,
+            "risk_management": True,
+            "market_scanner": True,
+            "binance_api": True
+        },
+        
+        # Binance real-time data
+        "binance_data": {
+            "market_summary": binance_market_summary,
+            "crypto_prices": binance_crypto_prices,
+            "forex_rates": binance_forex_rates
+        }
     }

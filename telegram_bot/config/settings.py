@@ -21,6 +21,12 @@ class Settings:
     THESPORTSDB_KEY: str = "1"  # '1' public test key
     API_FOOTBALL_KEY: str = ""
     API_SPORTS_KEY: str = ""
+    
+    # Binance API
+    BINANCE_API_KEY: str = "UPchixR6CyXXthOG3vSpAaZOXJikWDxD4q7Uu8kkW0qbs1LKCPdXhRIiEg4SBwHv"
+    BINANCE_SECRET_KEY: str = "EIxLfnfANrnin3r8EyDQ6eWmwbWxFbQiDzl3TbXKqG7nWCarBXyXE9EQLlnyr3k7"
+    BINANCE_BASE_URL: str = "https://api.binance.com"
+    BINANCE_WS_URL: str = "wss://stream.binance.com:9443/ws"
 
     # Scheduling
     TIMEZONE: str = "Asia/Tehran"
@@ -70,7 +76,7 @@ class Settings:
     TRENDS_COMPARE_REGION: str = "united_states"
     # Posting mode
     POST_MODE: str = "split"  # 'split' or 'combined'
-    TOPIC_SEQUENCE: str = "economy,sports,trends,insight"
+    TOPIC_SEQUENCE: str = "crypto,forex,defi,trading,regulatory,sentiment,economic,insight"
     DETAIL_LEVEL: str = "high"  # 'high'|'medium'|'low'
     ENABLE_IMAGES: bool = True
     IMAGE_SIZE: str = "1024x1024"

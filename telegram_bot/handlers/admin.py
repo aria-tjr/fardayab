@@ -815,36 +815,34 @@ def admin_router(settings: Settings, scheduler, db: Database) -> Router:
             return
         await msg.answer("📚 در حال تست انواع محتوا...")
         try:
-            from telegram_bot.modules.content_types import EnhancedContentManager
-            content_manager = EnhancedContentManager(settings)
+            from telegram_bot.modules.crypto_content_types import CryptoForexContentManager
+            content_manager = CryptoForexContentManager(settings)
             
             # Test all content types
-            all_content = await content_manager.get_all_enhanced_content()
+            all_content = await content_manager.get_all_crypto_forex_content()
             
             # Count available content
-            culture_count = len(all_content.get('culture_and_arts', {}).get('cultural_events', []))
-            tech_count = len(all_content.get('technology_innovation', {}).get('iranian_tech', []))
-            literature_count = 1 if all_content.get('literature_poetry', {}).get('daily_poem') else 0
-            lifestyle_count = len(all_content.get('lifestyle_health', {}).get('health_tips', []))
-            travel_count = len(all_content.get('travel_tourism', {}).get('destinations', []))
+            crypto_count = len(all_content.get('cryptocurrency', {}).get('major_cryptocurrencies', []))
+            forex_count = len(all_content.get('forex', {}).get('major_pairs', []))
+            trading_count = 1 if all_content.get('trading', {}).get('fear_greed_index') else 0
+            regulatory_count = len(all_content.get('regulatory', {}).get('regulatory_news', []))
             
-            total_content = culture_count + tech_count + literature_count + lifestyle_count + travel_count
+            total_content = crypto_count + forex_count + trading_count + regulatory_count
             
             await msg.answer(
                 f"📚 **انواع محتوای فردایاب**\n\n"
-                f"🎭 فرهنگ و هنر: {culture_count} محتوا\n"
-                f"🚀 تکنولوژی و نوآوری: {tech_count} محتوا\n"
-                f"📖 ادبیات و شعر: {literature_count} شعر روز\n"
-                f"🌱 سبک زندگی و سلامت: {lifestyle_count} نکته\n"
-                f"✈️ سفر و گردشگری: {travel_count} مقصد\n\n"
+                f"₿ کریپتوکارنسی: {crypto_count} ارز دیجیتال\n"
+                f"💱 فارکس: {forex_count} جفت ارز\n"
+                f"📈 معاملات: {trading_count} شاخص\n"
+                f"⚖️ مقررات: {regulatory_count} خبر\n\n"
                 f"📊 **مجموع محتوا:** {total_content} مورد\n"
-                f"✅ **وضعیت:** {'فعال' if all_content.get('enhanced_content_active', False) else 'غیرفعال'}\n\n"
+                f"✅ **وضعیت:** {'فعال' if all_content.get('crypto_forex_content_active', False) else 'غیرفعال'}\n\n"
                 f"**دستورات تست:**\n"
-                f"/content culture - تست فرهنگ و هنر\n"
-                f"/content tech - تست تکنولوژی\n"
-                f"/content literature - تست ادبیات\n"
-                f"/content lifestyle - تست سبک زندگی\n"
-                f"/content travel - تست سفر"
+                f"/content crypto - تست کریپتوکارنسی\n"
+                f"/content forex - تست فارکس\n"
+                f"/content trading - تست معاملات\n"
+                f"/content regulatory - تست مقررات\n"
+                f"/content sentiment - تست احساسات بازار"
             )
         except Exception as e:
             await msg.answer(f"❌ خطا در تست انواع محتوا: {e}")
