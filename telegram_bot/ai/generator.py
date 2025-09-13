@@ -8,6 +8,7 @@ from typing import Any
 from openai import OpenAI
 
 from telegram_bot.config.settings import Settings
+from telegram_bot.utils.json_encoder import safe_json_dumps
 
 
 SYSTEM_PROMPT_BASE = (
@@ -50,7 +51,7 @@ def _build_user_prompt(data: dict[str, Any], variant: str, tone: str, persona: s
         "- یک نکته عملی برای معامله‌گران\n\n"
     )
     # Supply compact JSON data snapshot
-    data_json = json.dumps(data, ensure_ascii=False)
+    data_json = safe_json_dumps(data)
     return (
         f"Variant: {variant}\n"
         f"Persona: {persona}\n"
@@ -103,7 +104,7 @@ async def generate_admin_suggestions(settings: Settings, data: dict[str, Any]) -
         "1) 2-3 best posting times in the next 24h (timezone-aware).\n"
         "2) 3 brief growth tips (cross-promo, partnerships, content hooks).\n"
         "Keep it concise in Persian."
-        f"\nData: {json.dumps(data, ensure_ascii=False)}"
+        f"\nData: {safe_json_dumps(data)}"
     )
     return await _call_openai(settings, "You are a helpful strategist.", prompt)
 
@@ -208,7 +209,7 @@ def _topic_user_prompt(topic: str, data: dict[str, Any], detail_level: str, vari
         f"Detail: {detail_level}\n"
         f"Persona: {persona}\n"
         f"Tone: {tone}\n"
-        f"Data(JSON):\n{json.dumps(data, ensure_ascii=False)}\n\n"
+        f"Data(JSON):\n{safe_json_dumps(data)}\n\n"
         f"Output in Persian only. {extra} Use emojis sparingly but effectively."
     )
 

@@ -164,8 +164,8 @@ class Database:
         return None
 
     async def set_snapshot(self, day: str, payload: dict) -> None:
-        import json
-        s = json.dumps(payload, ensure_ascii=False)
+        from telegram_bot.utils.json_encoder import safe_json_dumps
+        s = safe_json_dumps(payload)
         await self.conn.execute(
             "INSERT INTO snapshots(day, payload) VALUES(?, ?) ON CONFLICT(day) DO UPDATE SET payload=excluded.payload",
             (day, s),

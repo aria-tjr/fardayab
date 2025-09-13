@@ -7,6 +7,7 @@ from typing import Any
 from openai import OpenAI
 
 from telegram_bot.config.settings import Settings
+from telegram_bot.utils.json_encoder import safe_json_dumps
 
 
 async def analyze_news_sentiment(settings: Settings, articles: list[dict]) -> dict:
@@ -23,7 +24,7 @@ async def analyze_news_sentiment(settings: Settings, articles: list[dict]) -> di
             "You will receive a list of news items (title+desc). "
             "Return a compact Persian summary of overall sentiment (bullish/bearish/neutral) and a score in [-1,1]. "
             "Also list 3-5 key topics as hashtags (English)." 
-            f"\nData: {json.dumps(articles, ensure_ascii=False)}"
+            f"\nData: {safe_json_dumps(articles)}"
         )
         resp = client.responses.create(
             model=settings.OPENAI_MODEL,
