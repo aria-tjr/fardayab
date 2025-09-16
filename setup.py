@@ -1,29 +1,40 @@
-#!/usr/bin/env python3
 """
-Setup script for Telegram Bot deployment
+Setup script for Crypto Signal Bot
 """
-
 from setuptools import setup, find_packages
 
+with open("README.md", "r", encoding="utf-8") as fh:
+    long_description = fh.read()
+
+with open("requirements.txt", "r", encoding="utf-8") as fh:
+    requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
+
 setup(
-    name="telegram-bot",
+    name="crypto-signal-bot",
     version="1.0.0",
+    author="Crypto Signal Bot Team",
+    author_email="support@example.com",
+    description="A fully automated Telegram bot for cryptocurrency signal generation and content creation",
+    long_description=long_description,
+    long_description_content_type="text/markdown",
+    url="https://github.com/yourusername/crypto-signal-bot",
     packages=find_packages(),
-    install_requires=[
-        "aiogram>=3.8.0",
-        "httpx>=0.27.0",
-        "python-dotenv>=1.0.1",
-        "APScheduler>=3.10.4",
-        "aiosqlite>=0.20.0",
-        "openai>=1.40.0",
-        "pytrends>=4.9.2",
-        "tenacity>=8.5.0",
-        "orjson>=3.10.7",
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Financial and Insurance Industry",
+        "Topic :: Office/Business :: Financial :: Investment",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
     ],
+    python_requires=">=3.11",
+    install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "telegram-bot=telegram_bot.main:main",
+            "crypto-signal-bot=src.main:main",
         ],
     },
-    python_requires=">=3.12",
+    include_package_data=True,
+    zip_safe=False,
 )

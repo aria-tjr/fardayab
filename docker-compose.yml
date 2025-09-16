@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  crypto-signal-bot:
+    build: .
+    container_name: crypto-signal-bot
+    restart: unless-stopped
+    
+    # استفاده از فایل .env برای متغیرهای محیطی
+    env_file:
+      - .env
+    
+    # Volume برای ذخیره دیتابیس و لاگ‌ها
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+    
+    # تنظیمات شبکه (در صورت نیاز)
+    # ports:
+    #   - "8000:8000"
+    
+    # محدودیت منابع
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "python", "-c", "from src.config import Config; Config.validate()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+# شبکه اختیاری
+networks:
+  default:
+    name: crypto-bot-network
+
+# Volume برای persistence
+volumes:
+  bot-data:
+    driver: local

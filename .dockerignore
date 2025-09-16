@@ -8,45 +8,75 @@ __pycache__
 *.pyo
 *.pyd
 .Python
-env
-pip-log.txt
-pip-delete-this-directory.txt
-.tox
+*.so
 .coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.git
-.mypy_cache
 .pytest_cache
-.hypothesis
+*.egg-info
 
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Virtual environments
+venv/
+env/
+ENV/
+crypto_bot_env/
 
 # IDE
-.vscode
-.idea
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
 
-# Data files
-data/*.db
-data/*.log
-*.db
-*.log
+# OS
+.DS_Store
+Thumbs.db
 
-# Deployment
-deploy/
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Documentation
 *.md
-README.md
+docs/
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+
+# Node modules (if any)
+node_modules/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Test files
+test_*.py
+*_test.py
+tests/
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Charts and images (will be generated)
+charts/
+*.png
+*.jpg
+*.jpeg
+
+# Data directories
+data/
+backups/

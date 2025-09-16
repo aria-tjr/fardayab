@@ -1,0 +1,118 @@
+{
+  "Current Settings": {
+    "total_signals": 1166,
+    "win_rate": 67.8,
+    "signals_per_day": 333.1,
+    "total_pnl": 796.64,
+    "avg_win": 1.49,
+    "avg_loss": -1.01,
+    "profit_factor": 1.48,
+    "strategy_breakdown": {
+      "trend_following": {
+        "win_rate": 66.3,
+        "signals": 777,
+        "avg_confidence": 0.853
+      },
+      "mean_reversion": {
+        "win_rate": 70.7,
+        "signals": 389,
+        "avg_confidence": 0.839
+      }
+    },
+    "combined_score": 0.807,
+    "config": {
+      "CONFIDENCE_THRESHOLD": 0.65,
+      "TREND_RSI_LONG_MIN": 53,
+      "TREND_RSI_SHORT_MAX": 47,
+      "RSI_OVERSOLD": 30,
+      "RSI_OVERBOUGHT": 70
+    }
+  },
+  "High Frequency": {
+    "total_signals": 1236,
+    "win_rate": 70.4,
+    "signals_per_day": 353.1,
+    "total_pnl": 926.91,
+    "avg_win": 1.49,
+    "avg_loss": -1.02,
+    "profit_factor": 1.47,
+    "strategy_breakdown": {
+      "trend_following": {
+        "win_rate": 71.3,
+        "signals": 801,
+        "avg_confidence": 0.857
+      },
+      "mean_reversion": {
+        "win_rate": 68.7,
+        "signals": 435,
+        "avg_confidence": 0.85
+      }
+    },
+    "combined_score": 0.822,
+    "config": {
+      "CONFIDENCE_THRESHOLD": 0.55,
+      "TREND_RSI_LONG_MIN": 50,
+      "TREND_RSI_SHORT_MAX": 50,
+      "RSI_OVERSOLD": 35,
+      "RSI_OVERBOUGHT": 65
+    }
+  },
+  "High Win Rate": {
+    "total_signals": 1147,
+    "win_rate": 67.1,
+    "signals_per_day": 327.7,
+    "total_pnl": 773.32,
+    "avg_win": 1.49,
+    "avg_loss": -1.0,
+    "profit_factor": 1.5,
+    "strategy_breakdown": {
+      "trend_following": {
+        "win_rate": 66.6,
+        "signals": 785,
+        "avg_confidence": 0.849
+      },
+      "mean_reversion": {
+        "win_rate": 68.2,
+        "signals": 362,
+        "avg_confidence": 0.823
+      }
+    },
+    "combined_score": 0.803,
+    "config": {
+      "CONFIDENCE_THRESHOLD": 0.75,
+      "TREND_RSI_LONG_MIN": 55,
+      "TREND_RSI_SHORT_MAX": 45,
+      "RSI_OVERSOLD": 25,
+      "RSI_OVERBOUGHT": 75
+    }
+  },
+  "Balanced Optimal": {
+    "total_signals": 1178,
+    "win_rate": 67.9,
+    "signals_per_day": 336.6,
+    "total_pnl": 810.49,
+    "avg_win": 1.49,
+    "avg_loss": -1.02,
+    "profit_factor": 1.47,
+    "strategy_breakdown": {
+      "trend_following": {
+        "win_rate": 65.6,
+        "signals": 783,
+        "avg_confidence": 0.857
+      },
+      "mean_reversion": {
+        "win_rate": 72.4,
+        "signals": 395,
+        "avg_confidence": 0.843
+      }
+    },
+    "combined_score": 0.807,
+    "config": {
+      "CONFIDENCE_THRESHOLD": 0.6,
+      "TREND_RSI_LONG_MIN": 52,
+      "TREND_RSI_SHORT_MAX": 48,
+      "RSI_OVERSOLD": 32,
+      "RSI_OVERBOUGHT": 68
+    }
+  }
+}

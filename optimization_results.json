@@ -1,0 +1,311 @@
+{
+  "best": {
+    "params": {
+      "CONFIDENCE_THRESHOLD": 0.86,
+      "ULTRA_MIN_CONFIDENCE": 0.98,
+      "RSI_OVERSOLD": 33,
+      "RSI_OVERBOUGHT": 67,
+      "STOP_LOSS_ATR_MULTIPLIER": 1.66,
+      "TAKE_PROFIT_ATR_MULTIPLIER": 1.24,
+      "MIN_VOLUME_RATIO": 2.22,
+      "MIN_ATR_RATIO": 1.49,
+      "MIN_TREND_STRENGTH": 26,
+      "MIN_MOMENTUM_CONSISTENCY": 3,
+      "TRADING_HOURS_START": 12,
+      "TRADING_HOURS_END": 17
+    },
+    "result": {
+      "total_signals": 1,
+      "winning_signals": 1,
+      "losing_signals": 0,
+      "win_rate": 100.0,
+      "total_pnl": 2.2596272396894213,
+      "max_drawdown": 0,
+      "sharpe_ratio": 0,
+      "profit_factor": Infinity,
+      "avg_win": 2.2596272396894213,
+      "avg_loss": 0,
+      "max_consecutive_wins": 1,
+      "max_consecutive_losses": 0,
+      "avg_holding_period": 0.25,
+      "signals_by_symbol": {
+        "BNB/USDT": {
+          "total_trades": 1,
+          "winning_trades": 1,
+          "losing_trades": 0,
+          "total_pnl": 2.2596272396894213,
+          "win_rate": 100.0,
+          "avg_return": 2.2596272396894213
+        }
+      },
+      "performance_by_month": {
+        "2025-09": 2.2596272396894213
+      },
+      "risk_metrics": {
+        "volatility": 0.0,
+        "skewness": 0,
+        "kurtosis": 0,
+        "var_95": 0.22584979906940741,
+        "cvar_95": 0.22584979906940741
+      },
+      "validation_summary": {
+        "is_valid": true,
+        "overall_score": 92.0,
+        "issues_count": 2
+      }
+    }
+  },
+  "history": [
+    {
+      "params": {
+        "CONFIDENCE_THRESHOLD": 0.94,
+        "ULTRA_MIN_CONFIDENCE": 0.99,
+        "RSI_OVERSOLD": 36,
+        "RSI_OVERBOUGHT": 64,
+        "STOP_LOSS_ATR_MULTIPLIER": 1.37,
+        "TAKE_PROFIT_ATR_MULTIPLIER": 1.94,
+        "MIN_VOLUME_RATIO": 2.4,
+        "MIN_ATR_RATIO": 1.32,
+        "MIN_TREND_STRENGTH": 38,
+        "MIN_MOMENTUM_CONSISTENCY": 2,
+        "TRADING_HOURS_START": 13,
+        "TRADING_HOURS_END": 18
+      },
+      "result": {
+        "total_signals": 0,
+        "winning_signals": 0,
+        "losing_signals": 0,
+        "win_rate": 0.0,
+        "total_pnl": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe_ratio": 0.0,
+        "profit_factor": 0.0,
+        "avg_win": 0.0,
+        "avg_loss": 0.0,
+        "max_consecutive_wins": 0,
+        "max_consecutive_losses": 0,
+        "avg_holding_period": 0.0,
+        "signals_by_symbol": {},
+        "performance_by_month": {},
+        "risk_metrics": {},
+        "validation_summary": {
+          "is_valid": false,
+          "overall_score": 60.0,
+          "issues_count": 1
+        }
+      }
+    },
+    {
+      "params": {
+        "CONFIDENCE_THRESHOLD": 0.82,
+        "ULTRA_MIN_CONFIDENCE": 0.91,
+        "RSI_OVERSOLD": 40,
+        "RSI_OVERBOUGHT": 70,
+        "STOP_LOSS_ATR_MULTIPLIER": 1.43,
+        "TAKE_PROFIT_ATR_MULTIPLIER": 2.12,
+        "MIN_VOLUME_RATIO": 2.08,
+        "MIN_ATR_RATIO": 1.97,
+        "MIN_TREND_STRENGTH": 34,
+        "MIN_MOMENTUM_CONSISTENCY": 4,
+        "TRADING_HOURS_START": 11,
+        "TRADING_HOURS_END": 15
+      },
+      "result": {
+        "total_signals": 0,
+        "winning_signals": 0,
+        "losing_signals": 0,
+        "win_rate": 0.0,
+        "total_pnl": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe_ratio": 0.0,
+        "profit_factor": 0.0,
+        "avg_win": 0.0,
+        "avg_loss": 0.0,
+        "max_consecutive_wins": 0,
+        "max_consecutive_losses": 0,
+        "avg_holding_period": 0.0,
+        "signals_by_symbol": {},
+        "performance_by_month": {},
+        "risk_metrics": {},
+        "validation_summary": {
+          "is_valid": false,
+          "overall_score": 60.0,
+          "issues_count": 1
+        }
+      }
+    },
+    {
+      "params": {
+        "CONFIDENCE_THRESHOLD": 0.88,
+        "ULTRA_MIN_CONFIDENCE": 0.97,
+        "RSI_OVERSOLD": 30,
+        "RSI_OVERBOUGHT": 62,
+        "STOP_LOSS_ATR_MULTIPLIER": 2.26,
+        "TAKE_PROFIT_ATR_MULTIPLIER": 1.89,
+        "MIN_VOLUME_RATIO": 2.24,
+        "MIN_ATR_RATIO": 1.95,
+        "MIN_TREND_STRENGTH": 35,
+        "MIN_MOMENTUM_CONSISTENCY": 3,
+        "TRADING_HOURS_START": 10,
+        "TRADING_HOURS_END": 17
+      },
+      "result": {
+        "total_signals": 0,
+        "winning_signals": 0,
+        "losing_signals": 0,
+        "win_rate": 0.0,
+        "total_pnl": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe_ratio": 0.0,
+        "profit_factor": 0.0,
+        "avg_win": 0.0,
+        "avg_loss": 0.0,
+        "max_consecutive_wins": 0,
+        "max_consecutive_losses": 0,
+        "avg_holding_period": 0.0,
+        "signals_by_symbol": {},
+        "performance_by_month": {},
+        "risk_metrics": {},
+        "validation_summary": {
+          "is_valid": false,
+          "overall_score": 60.0,
+          "issues_count": 1
+        }
+      }
+    },
+    {
+      "params": {
+        "CONFIDENCE_THRESHOLD": 0.94,
+        "ULTRA_MIN_CONFIDENCE": 0.96,
+        "RSI_OVERSOLD": 31,
+        "RSI_OVERBOUGHT": 65,
+        "STOP_LOSS_ATR_MULTIPLIER": 1.71,
+        "TAKE_PROFIT_ATR_MULTIPLIER": 1.75,
+        "MIN_VOLUME_RATIO": 1.55,
+        "MIN_ATR_RATIO": 1.85,
+        "MIN_TREND_STRENGTH": 42,
+        "MIN_MOMENTUM_CONSISTENCY": 2,
+        "TRADING_HOURS_START": 12,
+        "TRADING_HOURS_END": 16
+      },
+      "result": {
+        "total_signals": 0,
+        "winning_signals": 0,
+        "losing_signals": 0,
+        "win_rate": 0.0,
+        "total_pnl": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe_ratio": 0.0,
+        "profit_factor": 0.0,
+        "avg_win": 0.0,
+        "avg_loss": 0.0,
+        "max_consecutive_wins": 0,
+        "max_consecutive_losses": 0,
+        "avg_holding_period": 0.0,
+        "signals_by_symbol": {},
+        "performance_by_month": {},
+        "risk_metrics": {},
+        "validation_summary": {
+          "is_valid": false,
+          "overall_score": 60.0,
+          "issues_count": 1
+        }
+      }
+    },
+    {
+      "params": {
+        "CONFIDENCE_THRESHOLD": 0.93,
+        "ULTRA_MIN_CONFIDENCE": 0.91,
+        "RSI_OVERSOLD": 42,
+        "RSI_OVERBOUGHT": 64,
+        "STOP_LOSS_ATR_MULTIPLIER": 1.24,
+        "TAKE_PROFIT_ATR_MULTIPLIER": 2.32,
+        "MIN_VOLUME_RATIO": 2.36,
+        "MIN_ATR_RATIO": 1.98,
+        "MIN_TREND_STRENGTH": 33,
+        "MIN_MOMENTUM_CONSISTENCY": 2,
+        "TRADING_HOURS_START": 12,
+        "TRADING_HOURS_END": 18
+      },
+      "result": {
+        "total_signals": 0,
+        "winning_signals": 0,
+        "losing_signals": 0,
+        "win_rate": 0.0,
+        "total_pnl": 0.0,
+        "max_drawdown": 0.0,
+        "sharpe_ratio": 0.0,
+        "profit_factor": 0.0,
+        "avg_win": 0.0,
+        "avg_loss": 0.0,
+        "max_consecutive_wins": 0,
+        "max_consecutive_losses": 0,
+        "avg_holding_period": 0.0,
+        "signals_by_symbol": {},
+        "performance_by_month": {},
+        "risk_metrics": {},
+        "validation_summary": {
+          "is_valid": false,
+          "overall_score": 60.0,
+          "issues_count": 1
+        }
+      }
+    },
+    {
+      "params": {
+        "CONFIDENCE_THRESHOLD": 0.86,
+        "ULTRA_MIN_CONFIDENCE": 0.98,
+        "RSI_OVERSOLD": 33,
+        "RSI_OVERBOUGHT": 67,
+        "STOP_LOSS_ATR_MULTIPLIER": 1.66,
+        "TAKE_PROFIT_ATR_MULTIPLIER": 1.24,
+        "MIN_VOLUME_RATIO": 2.22,
+        "MIN_ATR_RATIO": 1.49,
+        "MIN_TREND_STRENGTH": 26,
+        "MIN_MOMENTUM_CONSISTENCY": 3,
+        "TRADING_HOURS_START": 12,
+        "TRADING_HOURS_END": 17
+      },
+      "result": {
+        "total_signals": 1,
+        "winning_signals": 1,
+        "losing_signals": 0,
+        "win_rate": 100.0,
+        "total_pnl": 2.2596272396894213,
+        "max_drawdown": 0,
+        "sharpe_ratio": 0,
+        "profit_factor": Infinity,
+        "avg_win": 2.2596272396894213,
+        "avg_loss": 0,
+        "max_consecutive_wins": 1,
+        "max_consecutive_losses": 0,
+        "avg_holding_period": 0.25,
+        "signals_by_symbol": {
+          "BNB/USDT": {
+            "total_trades": 1,
+            "winning_trades": 1,
+            "losing_trades": 0,
+            "total_pnl": 2.2596272396894213,
+            "win_rate": 100.0,
+            "avg_return": 2.2596272396894213
+          }
+        },
+        "performance_by_month": {
+          "2025-09": 2.2596272396894213
+        },
+        "risk_metrics": {
+          "volatility": 0.0,
+          "skewness": 0,
+          "kurtosis": 0,
+          "var_95": 0.22584979906940741,
+          "cvar_95": 0.22584979906940741
+        },
+        "validation_summary": {
+          "is_valid": true,
+          "overall_score": 92.0,
+          "issues_count": 2
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,13 @@
+[
+  {
+    "generation": 0,
+    "best_win_rate": 100.0,
+    "avg_win_rate": 12.5,
+    "best_fitness": 103.00179744003151,
+    "avg_fitness": 13.303941083538906,
+    "best_trading_freq": 0.06666666666666667,
+    "avg_trading_freq": 0.008333333333333333,
+    "population_size": 20,
+    "diversity_score": 2.1610310340228
+  }
+]
