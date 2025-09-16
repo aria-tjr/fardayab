@@ -13,6 +13,9 @@ __pycache__
 .pytest_cache
 *.egg-info
 
+# Important: DO NOT ignore __init__.py files!
+!__init__.py
+
 # Virtual environments
 venv/
 env/

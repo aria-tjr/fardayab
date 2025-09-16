@@ -38,9 +38,12 @@ COPY requirements.txt .
 # نصب وابستگی‌های Python
 RUN pip install --no-cache-dir -r requirements.txt
 
-# کپی کد برنامه
+# کپی کد برنامه (با تمام فایل‌ها و زیرپوشه‌ها)
 COPY src/ ./src/
 COPY run_bot.py .
+
+# اطمینان از وجود __init__.py در تمام پوشه‌ها
+RUN find ./src -type d -exec touch {}/__init__.py \;
 
 # ایجاد کاربر غیر root برای امنیت
 RUN useradd -m -u 1000 botuser && \
