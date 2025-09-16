@@ -1,0 +1,46 @@
+# بات سیگنال‌دهنده کریپتو - Docker Image with TA-Lib
+# استفاده از base image که TA-Lib از قبل نصب شده دارد
+
+FROM python:3.11-bullseye
+
+# نصب وابستگی‌های سیستمی
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libta-lib0-dev \
+    pkg-config \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+# تنظیم دایرکتری کاری
+WORKDIR /app
+
+# کپی فایل‌های requirements
+COPY requirements.txt .
+
+# نصب وابستگی‌های Python (TA-Lib باید کار کند)
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
+
+# کپی کد برنامه
+COPY src/ ./src/
+COPY run_bot.py .
+
+# ایجاد کاربر غیر root برای امنیت
+RUN useradd -m -u 1000 botuser && \
+    chown -R botuser:botuser /app
+USER botuser
+
+# تنظیم متغیرهای محیطی
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+
+# پورت پیش‌فرض (در صورت نیاز)
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "from src.config import Config; Config.validate()" || exit 1
+
+# دستور اجرا
+CMD ["python", "-m", "src.main"]

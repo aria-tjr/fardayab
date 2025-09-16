@@ -4,10 +4,30 @@ FROM python:3.11-slim
 # نصب وابستگی‌های سیستمی
 RUN apt-get update && apt-get install -y \
     build-essential \
-    libta-lib-dev \
     pkg-config \
     curl \
+    wget \
+    gcc \
+    g++ \
+    make \
     && rm -rf /var/lib/apt/lists/*
+
+# نصب TA-Lib از سورس
+RUN cd /tmp && \
+    wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
+    tar -xzf ta-lib-0.4.0-src.tar.gz && \
+    cd ta-lib/ && \
+    ./configure --prefix=/usr && \
+    make && \
+    make install && \
+    ldconfig && \
+    cd / && \
+    rm -rf /tmp/ta-lib*
+
+# تنظیم متغیرهای محیطی برای TA-Lib
+ENV LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
+ENV TALIB_INCLUDE_PATH=/usr/include
+ENV TALIB_LIBRARY_PATH=/usr/lib
 
 # تنظیم دایرکتری کاری
 WORKDIR /app
