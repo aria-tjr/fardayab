@@ -6,11 +6,24 @@ FROM python:3.11-bullseye
 # نصب وابستگی‌های سیستمی
 RUN apt-get update && apt-get install -y \
     build-essential \
-    libta-lib0-dev \
     pkg-config \
     curl \
     wget \
+    gcc \
+    g++ \
+    make \
     && rm -rf /var/lib/apt/lists/*
+
+# نصب TA-Lib از source
+RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
+    tar -xzf ta-lib-0.4.0-src.tar.gz && \
+    cd ta-lib && \
+    ./configure --prefix=/usr/local && \
+    make && \
+    make install && \
+    cd .. && \
+    rm -rf ta-lib ta-lib-0.4.0-src.tar.gz && \
+    ldconfig
 
 # تنظیم دایرکتری کاری
 WORKDIR /app
@@ -35,8 +48,11 @@ RUN useradd -m -u 1000 botuser && \
 USER botuser
 
 # تنظیم متغیرهای محیطی
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/app/src
 ENV PYTHONUNBUFFERED=1
+ENV LD_LIBRARY_PATH=/usr/local/lib:$LD_LIBRARY_PATH
+ENV TALIB_INCLUDE_PATH=/usr/local/include
+ENV TALIB_LIBRARY_PATH=/usr/local/lib
 
 # پورت پیش‌فرض (در صورت نیاز)
 EXPOSE 8000

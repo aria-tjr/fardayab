@@ -1,26 +1,32 @@
-# بات سیگنال‌دهنده کریپتو - Simple Docker Image (No TA-Lib)
+# بات سیگنال‌دهنده کریپتو - Simple Docker Image
+# بدون TA-Lib برای سازگاری بهتر
+
 FROM python:3.11-slim
 
-# نصب وابستگی‌های سیستمی اساسی
+# نصب وابستگی‌های سیستمی
 RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
     curl \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
 # تنظیم دایرکتری کاری
 WORKDIR /app
 
-# کپی requirements بدون TA-Lib
+# کپی فایل‌های requirements
 COPY requirements.txt .
 
-# حذف TA-Lib از requirements و نصب سایر پکیج‌ها
-RUN grep -v "ta-lib" requirements.txt > requirements_no_talib.txt && \
-    pip install --no-cache-dir -r requirements_no_talib.txt
+# نصب وابستگی‌های Python (بدون TA-Lib)
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# کپی کد برنامه
+# کپی کد برنامه (با تمام فایل‌ها و زیرپوشه‌ها)
 COPY src/ ./src/
 COPY run_bot.py .
+
+# اطمینان از وجود __init__.py در تمام پوشه‌ها
+RUN find ./src -type d -exec touch {}/__init__.py \;
 
 # ایجاد کاربر غیر root برای امنیت
 RUN useradd -m -u 1000 botuser && \
@@ -28,13 +34,13 @@ RUN useradd -m -u 1000 botuser && \
 USER botuser
 
 # تنظیم متغیرهای محیطی
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/app/src
 ENV PYTHONUNBUFFERED=1
 
 # پورت پیش‌فرض (در صورت نیاز)
 EXPOSE 8000
 
-# Health check (بدون TA-Lib)
+# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD python -c "from src.config import Config; Config.validate()" || exit 1
 

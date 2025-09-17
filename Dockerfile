@@ -51,7 +51,7 @@ RUN useradd -m -u 1000 botuser && \
 USER botuser
 
 # تنظیم متغیرهای محیطی
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/app/src
 ENV PYTHONUNBUFFERED=1
 
 # پورت پیش‌فرض (در صورت نیاز)

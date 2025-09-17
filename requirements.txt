@@ -30,6 +30,6 @@ requests>=2.31.0
 aiohttp>=3.9.0
 
 # Additional Dependencies
-ta-lib>=0.4.25  # Technical Analysis (Required for advanced indicators)
+# ta-lib>=0.4.25  # Technical Analysis (Optional - will use built-in indicators if not available)
 scipy>=1.10.0  # Scientific Computing
 psutil>=5.9.0  # System monitoring
