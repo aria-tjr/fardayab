@@ -31,9 +31,17 @@ import mplfinance as mpf
 import base64
 import io
 
-# Add paths
-sys.path.insert(0, '/app')
-sys.path.insert(0, '/app/src')
+# Add paths for Railway deployment
+if '/app' in os.getcwd() or 'railway' in os.getcwd().lower():
+    sys.path.insert(0, '/app')
+    sys.path.insert(0, '/app/src')
+    # Change to /app directory for Railway
+    if os.path.exists('/app'):
+        os.chdir('/app')
+else:
+    # Local development
+    sys.path.insert(0, os.getcwd())
+    sys.path.insert(0, os.path.join(os.getcwd(), 'src'))
 
 # Configure logging
 logging.basicConfig(
