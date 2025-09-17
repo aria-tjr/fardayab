@@ -401,6 +401,115 @@ class TelegramBot:
                 "/help - راهنما",
                 parse_mode=ParseMode.MARKDOWN
             )
+        
+        @self.dp.message(Command("status"))
+        async def status_command(message: Message):
+            try:
+                # Get recent stats
+                recent_signals = self.db.get_recent_signals(5)
+                performance = self.db.get_performance_stats(7)
+                
+                status_text = f"""
+📊 **وضعیت بات**
+
+🔄 **آخرین فعالیت:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+
+📈 **آمار 7 روز گذشته:**
+• کل سیگنال‌ها: {performance.get('total_signals', 0)}
+• نرخ برد: {performance.get('win_rate', 0):.1f}%
+• سیگنال‌های برنده: {performance.get('winning_signals', 0)}
+• سیگنال‌های بازنده: {performance.get('losing_signals', 0)}
+
+🔔 **آخرین سیگنال‌ها:**
+"""
+                
+                for signal in recent_signals[:3]:
+                    status_text += f"• {signal['symbol']} {signal['direction']} - {signal['confidence']:.2f}\n"
+                
+                await message.answer(status_text, parse_mode=ParseMode.MARKDOWN)
+                
+            except Exception as e:
+                logger.error(f"Error in status command: {e}")
+                await message.answer("خطا در دریافت وضعیت. لطفاً دوباره تلاش کنید.")
+        
+        @self.dp.message(Command("signals"))
+        async def signals_command(message: Message):
+            try:
+                recent_signals = self.db.get_recent_signals(10)
+                
+                if not recent_signals:
+                    await message.answer("هیچ سیگنالی یافت نشد.")
+                    return
+                
+                signals_text = "📊 **آخرین سیگنال‌ها**\n\n"
+                
+                for signal in recent_signals:
+                    status_emoji = "✅" if signal.get('result') == "WIN" else "❌" if signal.get('result') == "LOSS" else "⏳"
+                    signals_text += f"""
+{status_emoji} **{signal['symbol']}** {signal['direction']}
+💰 قیمت: ${signal['entry_price']:.4f}
+🎯 اعتماد: {signal['confidence']:.2f}
+📅 زمان: {signal['timestamp'].strftime('%m/%d %H:%M')}
+"""
+                
+                await message.answer(signals_text, parse_mode=ParseMode.MARKDOWN)
+                
+            except Exception as e:
+                logger.error(f"Error in signals command: {e}")
+                await message.answer("خطا در دریافت سیگنال‌ها. لطفاً دوباره تلاش کنید.")
+        
+        @self.dp.message(Command("performance"))
+        async def performance_command(message: Message):
+            try:
+                performance = self.db.get_performance_stats(30)
+                
+                performance_text = f"""
+📊 **آمار عملکرد 30 روز گذشته**
+
+📈 **آمار کلی:**
+• کل سیگنال‌ها: {performance.get('total_signals', 0)}
+• سیگنال‌های برنده: {performance.get('winning_signals', 0)}
+• سیگنال‌های بازنده: {performance.get('losing_signals', 0)}
+• نرخ برد: {performance.get('win_rate', 0):.1f}%
+
+💰 **آمار مالی:**
+• میانگین سود: {performance.get('avg_win', 0):.2f}%
+• میانگین زیان: {performance.get('avg_loss', 0):.2f}%
+• ضریب سود: {performance.get('profit_factor', 0):.2f}
+"""
+                
+                await message.answer(performance_text, parse_mode=ParseMode.MARKDOWN)
+                
+            except Exception as e:
+                logger.error(f"Error in performance command: {e}")
+                await message.answer("خطا در دریافت آمار عملکرد. لطفاً دوباره تلاش کنید.")
+        
+        @self.dp.message(Command("help"))
+        async def help_command(message: Message):
+            help_text = """
+📚 **راهنمای بات سیگنال کریپتو**
+
+🤖 **درباره بات:**
+این بات به صورت خودکار سیگنال‌های معاملاتی ارزهای دیجیتال تولید و ارسال می‌کند.
+
+📊 **دستورات موجود:**
+/start - شروع و معرفی بات
+/status - وضعیت فعلی بات
+/signals - نمایش آخرین سیگنال‌ها
+/performance - آمار عملکرد
+/help - نمایش این راهنما
+
+⚠️ **هشدار مهم:**
+• این سیگنال‌ها صرفاً برای اهداف آموزشی هستند
+• معاملات کریپتو دارای ریسک بالایی است
+• همیشه مدیریت ریسک را رعایت کنید
+• این بات مسئولیتی در قبال ضررهای احتمالی ندارد
+
+📞 **پشتیبانی:**
+برای سوالات و پشتیبانی با تیم ما تماس بگیرید.
+"""
+            
+            await message.answer(help_text, parse_mode=ParseMode.MARKDOWN)
     
     async def send_signal(self, signal):
         try:
@@ -417,6 +526,25 @@ class TelegramBot:
             
         except Exception as e:
             logger.error(f"Error sending signal: {e}")
+            return False
+    
+    async def send_content(self, content):
+        """Send generated content to the channel"""
+        try:
+            # Format content message
+            message_text = f"**{content['title']}**\n\n{content['content']}\n\n{Config.RISK_WARNING}"
+            
+            await self.bot.send_message(
+                chat_id=self.channel_id,
+                text=message_text,
+                parse_mode=ParseMode.MARKDOWN
+            )
+            
+            logger.info(f"Content sent to channel: {content['content_type']}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error sending content: {e}")
             return False
     
     def _format_signal_message(self, signal):
@@ -450,8 +578,28 @@ class TelegramBot:
         
         return message
     
+    async def register_commands(self):
+        """Register bot commands with BotFather"""
+        try:
+            commands = [
+                {"command": "start", "description": "شروع و معرفی بات"},
+                {"command": "status", "description": "وضعیت فعلی بات"},
+                {"command": "signals", "description": "آخرین سیگنال‌ها"},
+                {"command": "performance", "description": "آمار عملکرد"},
+                {"command": "help", "description": "راهنمای استفاده"}
+            ]
+            
+            await self.bot.set_my_commands(commands)
+            logger.info("Bot commands registered successfully")
+            
+        except Exception as e:
+            logger.error(f"Error registering commands: {e}")
+    
     async def start_polling(self):
         try:
+            # Register commands first
+            await self.register_commands()
+            
             logger.info("Starting Telegram bot polling...")
             await self.dp.start_polling(self.bot)
         except Exception as e:
