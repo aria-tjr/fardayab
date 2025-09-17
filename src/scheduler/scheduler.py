@@ -14,8 +14,17 @@ from apscheduler.triggers.interval import IntervalTrigger
 from aiogram.types import BufferedInputFile
 from aiogram.enums import ParseMode
 
-# Import with robust fallbacks to handle different runtime package contexts
+# Import with multiple fallbacks for different deployment environments
+import sys
+import os
+
+# Add current directory to Python path for Railway/Docker deployments
+if '/app' in os.getcwd() or 'railway' in os.getcwd().lower():
+    sys.path.insert(0, '/app')
+    sys.path.insert(0, '/app/src')
+
 try:
+    # Try relative imports first (local development)
     from ..config import Config
     from ..exchange.data_fetcher import ExchangeDataFetcher
     from ..strategies.signal_generator import SignalGenerator
@@ -23,15 +32,25 @@ try:
     from ..content.content_generator import ContentGenerator
     from ..telegram.bot import TelegramBot
     from ..storage.models import DatabaseManager
-except Exception:
-    # Fallback to absolute imports when relative context is not available (e.g., some Docker runners)
-    from src.config import Config
-    from src.exchange.data_fetcher import ExchangeDataFetcher
-    from src.strategies.signal_generator import SignalGenerator
-    from src.charts.chart_generator import ChartGenerator
-    from src.content.content_generator import ContentGenerator
-    from src.telegram.bot import TelegramBot
-    from src.storage.models import DatabaseManager
+except ImportError:
+    try:
+        # Try absolute imports (Docker/Railway)
+        from src.config import Config
+        from src.exchange.data_fetcher import ExchangeDataFetcher
+        from src.strategies.signal_generator import SignalGenerator
+        from src.charts.chart_generator import ChartGenerator
+        from src.content.content_generator import ContentGenerator
+        from src.telegram.bot import TelegramBot
+        from src.storage.models import DatabaseManager
+    except ImportError:
+        # Try direct imports (Railway specific)
+        from config import Config
+        from exchange.data_fetcher import ExchangeDataFetcher
+        from strategies.signal_generator import SignalGenerator
+        from charts.chart_generator import ChartGenerator
+        from content.content_generator import ContentGenerator
+        from telegram.bot import TelegramBot
+        from storage.models import DatabaseManager
 
 logger = logging.getLogger(__name__)
 

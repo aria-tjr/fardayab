@@ -1,0 +1,13 @@
+[build]
+builder = "dockerfile"
+dockerfilePath = "Dockerfile.railway"
+
+[deploy]
+startCommand = "python railway_start.py"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "always"
+
+[env]
+PYTHONPATH = "/app:/app/src"
+PYTHONUNBUFFERED = "1"

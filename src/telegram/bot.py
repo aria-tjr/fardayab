@@ -13,8 +13,13 @@ from aiogram.filters import Command
 from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.enums import ParseMode
 
-from ..config import Config
-from ..storage.models import DatabaseManager
+# Import with fallbacks for Railway deployment
+try:
+    from ..config import Config
+    from ..storage.models import DatabaseManager
+except ImportError:
+    from config import Config
+    from storage.models import DatabaseManager
 
 logger = logging.getLogger(__name__)
 

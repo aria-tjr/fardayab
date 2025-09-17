@@ -6,13 +6,25 @@ import logging
 import signal
 import sys
 import traceback
+import os
 from datetime import datetime
 from typing import Optional
 
-from .config import Config
-from .scheduler.scheduler import SchedulerManager
-from .telegram.bot import TelegramBot
-from .storage.models import DatabaseManager
+# Add current directory to Python path for Railway/Docker deployments
+if '/app' in os.getcwd() or 'railway' in os.getcwd().lower():
+    sys.path.insert(0, '/app')
+    sys.path.insert(0, '/app/src')
+
+try:
+    from .config import Config
+    from .scheduler.scheduler import SchedulerManager
+    from .telegram.bot import TelegramBot
+    from .storage.models import DatabaseManager
+except ImportError:
+    from config import Config
+    from scheduler.scheduler import SchedulerManager
+    from telegram.bot import TelegramBot
+    from storage.models import DatabaseManager
 
 # Configure logging
 logging.basicConfig(
