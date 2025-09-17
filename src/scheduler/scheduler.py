@@ -14,13 +14,24 @@ from apscheduler.triggers.interval import IntervalTrigger
 from aiogram.types import BufferedInputFile
 from aiogram.enums import ParseMode
 
-from ..config import Config
-from ..exchange.data_fetcher import ExchangeDataFetcher
-from ..strategies.signal_generator import SignalGenerator
-from ..charts.chart_generator import ChartGenerator
-from ..content.content_generator import ContentGenerator
-from ..telegram.bot import TelegramBot
-from ..storage.models import DatabaseManager
+# Import with robust fallbacks to handle different runtime package contexts
+try:
+    from ..config import Config
+    from ..exchange.data_fetcher import ExchangeDataFetcher
+    from ..strategies.signal_generator import SignalGenerator
+    from ..charts.chart_generator import ChartGenerator
+    from ..content.content_generator import ContentGenerator
+    from ..telegram.bot import TelegramBot
+    from ..storage.models import DatabaseManager
+except Exception:
+    # Fallback to absolute imports when relative context is not available (e.g., some Docker runners)
+    from src.config import Config
+    from src.exchange.data_fetcher import ExchangeDataFetcher
+    from src.strategies.signal_generator import SignalGenerator
+    from src.charts.chart_generator import ChartGenerator
+    from src.content.content_generator import ContentGenerator
+    from src.telegram.bot import TelegramBot
+    from src.storage.models import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
