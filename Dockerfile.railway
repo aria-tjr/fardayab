@@ -27,6 +27,7 @@ COPY railway_main.py .
 COPY railway_start_simple.py .
 COPY railway_bot.py .
 COPY railway_start_final.py .
+COPY railway_web_server.py .
 
 # Ensure all directories have __init__.py files
 RUN find ./src -type d -exec touch {}/__init__.py \;
