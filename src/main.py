@@ -227,9 +227,15 @@ async def main():
         logger.info("Application interrupted by user")
     except Exception as e:
         logger.error(f"Application error: {e}")
+        logger.error(traceback.format_exc())
         sys.exit(1)
     finally:
         await bot.stop()
+
+def railway_main():
+    """Railway-specific entry point"""
+    import asyncio
+    asyncio.run(main())
 
 if __name__ == "__main__":
     asyncio.run(main())
