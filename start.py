@@ -22,8 +22,8 @@ else:
 if __name__ == "__main__":
     try:
         if '/app' in os.getcwd() or 'railway' in os.getcwd().lower():
-            # Railway deployment - run from src directory
-            from main import main
+            # Railway deployment - use railway_main.py
+            from railway_main import main
         else:
             # Local development - run as module
             from src.main import main

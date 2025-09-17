@@ -3,7 +3,7 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile.railway"
 
 [deploy]
-startCommand = "python start.py"
+startCommand = "python railway_bot.py"
 healthcheckPath = "/"
 healthcheckTimeout = 300
 restartPolicyType = "always"

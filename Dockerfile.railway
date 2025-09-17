@@ -23,6 +23,9 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY src/ ./src/
 COPY run_bot.py .
 COPY start.py .
+COPY railway_main.py .
+COPY railway_start_simple.py .
+COPY railway_bot.py .
 
 # Ensure all directories have __init__.py files
 RUN find ./src -type d -exec touch {}/__init__.py \;
