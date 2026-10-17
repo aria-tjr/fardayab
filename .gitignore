@@ -135,3 +135,14 @@ crypto_bot.log
 charts/
 temp/
 .DS_Store
+
+# Secrets (never commit real credentials)
+.env
+.env.*
+!.env.example
+*.env
+updated_env_settings.txt
+*_env_settings.txt
+*.pem
+*_ed25519
+*_rsa
