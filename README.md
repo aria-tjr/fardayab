@@ -1,6 +1,6 @@
 # Fardayab — AI-Powered Crypto Signal Telegram Bot
 
-Fardayab (فردایاب) is an automated cryptocurrency signal bot that combines **Freqtrade** algorithmic trading with **GPT-4 analysis** to deliver actionable trading signals via Telegram.
+Fardayab (فردایاب) is an automated cryptocurrency signal bot that generates rule-based technical-analysis trading signals and publishes them, together with GPT-written market content, to a Telegram channel.
 
 ## Overview
 
@@ -8,8 +8,8 @@ An end-to-end crypto trading intelligence system that backtests strategies, runs
 
 ## Features
 
-- **AI-Enhanced Signals** — GPT-4 analyzes market context and enhances raw Freqtrade signals with sentiment and reasoning
-- **Freqtrade Integration** — Battle-tested algorithmic trading framework with custom strategies and backtesting
+- **Rule-based signal engine** — trend-following, mean-reversion and momentum strategies on technical indicators (`src/strategies/`)
+- **GPT-written content** — OpenAI generates market summaries, altcoin spotlights and education posts (`src/content/content_generator.py`); it does not generate the trade signals
 - **Telegram Bot** — Formatted signal delivery with entry, stop-loss, and take-profit levels
 - **Multi-Exchange Support** — Binance, Bybit, and other major exchanges via CCXT
 - **Backtesting Engine** — Historical strategy validation before live deployment
@@ -20,8 +20,8 @@ An end-to-end crypto trading intelligence system that backtests strategies, runs
 
 | Layer | Technology |
 |-------|-----------|
-| Trading Engine | Freqtrade |
-| AI Analysis | OpenAI GPT-4 API |
+| Signal Engine | Custom Python strategies (`src/strategies/`) |
+| AI Content | OpenAI API (written posts only) |
 | Bot Framework | python-telegram-bot |
 | Exchange APIs | Binance API, CCXT |
 | Deployment | Docker, Railway |
@@ -30,11 +30,9 @@ An end-to-end crypto trading intelligence system that backtests strategies, runs
 ## Architecture
 
 ```
-Market Data → Freqtrade Strategy → Signal Generator
-                                        ↓
-                              GPT-4 Context Analysis
-                                        ↓
-                              Telegram Bot → Channel
+Market Data (CCXT) → Indicator strategies → Signal Generator → Telegram Bot → Channel
+                                                   ↑
+                         OpenAI → market summaries / education posts
 ```
 
 ## Setup
@@ -45,12 +43,16 @@ Market Data → Freqtrade Strategy → Signal Generator
    - OpenAI API Key
    - Binance/Exchange API Key & Secret
 3. Install dependencies: `pip install -r requirements.txt`
-4. Run locally: `python main.py`
+4. Run locally: `python -m src.main`
 5. Or deploy via Docker: `docker-compose up -d`
 
 ## Configuration
 
-See `.env.example` for all required environment variables. Never commit your actual `.env` file.
+See `.env.example` for all required environment variables (credentials are intentionally empty). Never commit your actual `.env` file.
+
+## Backtest note
+
+The backtest reports in this repository are historical experiments and have not been independently verified. An independent walk-forward test of the default `SignalGenerator` on Binance BTCUSDT/ETHUSDT 5m data (Apr–Sep 2026, 1x, 0.04% fee per side) was strongly negative. Do not treat the win-rate figures in the `*_RESULTS.md` files as expected live performance.
 
 ## Disclaimer
 
@@ -58,4 +60,4 @@ This bot is for educational and research purposes. Cryptocurrency trading involv
 
 ## License
 
-MIT License
+MIT — see [LICENSE](LICENSE).
